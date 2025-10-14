@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Memuat...</p>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="toast error-toast hidden">
+        <span id="errorMessage"></span>
+        <button onclick="hideError()" class="toast-close">×</button>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal-overlay hidden">
+        <div class="modal confirm-modal">
+            <h3 id="confirmTitle">Konfirmasi</h3>
+            <p id="confirmMessage">Apakah Anda yakin?</p>
+            <div class="confirm-actions">
+                <button id="confirmCancel" class="btn-secondary">Batal</button>
+                <button id="confirmOk" class="btn-danger">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Landing Page -->
+    <section id="landingPage" class="page active">
+        <header class="header">
+            <button id="adminLoginBtn" class="admin-btn" title="Login Admin">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 5.5V7H9V5.5L3 7V9L9 10.5V12L3 13.5V15.5L9 14V16L3 17.5V19.5L9 18V22H15V18L21 19.5V17.5L15 16V14L21 15.5V13.5L15 12V10.5L21 9Z"/>
+                </svg>
+            </button>
+        </header>
+
+        <main class="landing-main">
+            <div class="landing-content">
+                <h1 class="quiz-title">Quiz</h1>
+                <p class="quiz-subtitle">Uji pengetahuan Anda dengan kuis interaktif</p>
+                <button id="startQuizBtn" class="btn-primary btn-large">Start Quiz</button>
+            </div>
+        </main>
+    </section>
+
+    <!-- Quiz Start Page -->
+    <section id="quizStartPage" class="page">
+        <header class="header">
+            <button id="backToLanding" class="back-btn">
+                ← Kembali
+            </button>
+            <button id="adminLoginBtn2" class="admin-btn" title="Login Admin">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 5.5V7H9V5.5L3 7V9L9 10.5V12L3 13.5V15.5L9 14V16L3 17.5V19.5L9 18V22H15V18L21 19.5V17.5L15 16V14L21 15.5V13.5L15 12V10.5L21 9Z"/>
+                </svg>
+            </button>
+        </header>
+
+        <main class="quiz-start-main">
+            <div class="quiz-start-card">
+                <h2>Mulai Kuis</h2>
+                <form id="quizStartForm" class="quiz-form">
+                    <div class="form-group">
+                        <label for="usernameInput">Masukan username</label>
+                        <input type="text" id="usernameInput" placeholder="Username Anda" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="quizCodeInput">Kode Quiz</label>
+                        <input type="text" id="quizCodeInput" placeholder="Masukkan kode quiz yang diberikan" required class="uppercase">
+                    </div>
+                    <button type="submit" id="startBtn" class="btn-primary" disabled>Mulai</button>
+                </form>
+            </div>
+        </main>
+    </section>
+
+    <!-- Quiz Session Page -->
+    <section id="quizSessionPage" class="page">
+        <header class="quiz-header">
+            <div class="quiz-info">
+                <h2 id="quizTitle">Matematika Dasar</h2>
+                <span id="quizUser">User: JohnDoe</span>
+            </div>
+            <div class="quiz-score">
+                <div id="quizScore" class="score-value">0</div>
+                <span>Skor</span>
+            </div>
+        </header>
+
+        <main class="quiz-main">
+            <div class="quiz-progress">
+                <div id="questionProgress">Soal 1 dari 10</div>
+                <div id="timer" class="timer">30s</div>
+            </div>
+
+            <div class="question-card">
+                <h3 id="questionText">Pertanyaan akan muncul di sini...</h3>
+                <div id="questionImage" class="question-image hidden">
+                    <img src="" alt="Gambar soal">
+                </div>
+                
+                <div id="mcAnswers" class="answers-container hidden">
+                    <!-- Multiple choice answers will be inserted here -->
+                </div>
+                
+                <div id="essayAnswer" class="essay-container hidden">
+                    <textarea placeholder="Ketik jawaban Anda di sini..."></textarea>
+                </div>
+            </div>
+
+            <div id="result" class="result-message hidden"></div>
+
+            <div class="quiz-navigation">
+                <button id="prevQuestion" class="btn-secondary">Sebelumnya</button>
+                <button id="submitAnswer" class="btn-primary">Submit</button>
+                <button id="nextQuestion" class="btn-primary hidden">Lanjut</button>
+            </div>
+        </main>
+    </section>
+
+    <!-- Results Page -->
+    <section id="resultsPage" class="page">
+        <main class="results-main">
+            <div class="results-card">
+                <h2>Hasil Kuis</h2>
+                <div class="score-summary">
+                    <div class="final-score">
+                        <span>Skor Akhir:</span>
+                        <span id="finalScore">0</span>
+                    </div>
+                    <div class="badge-info hidden" id="badgeInfo">
+                        🎉 Anda mendapatkan lencana!
+                    </div>
+                </div>
+                
+                <div id="leaderboardSection" class="leaderboard-section">
+                    <h3>Leaderboard Top 3</h3>
+                    <div id="leaderboard" class="leaderboard">
+                        <!-- Leaderboard will be inserted here -->
+                    </div>
+                </div>
+
+                <div class="results-actions">
+                    <button id="useBadgeBtn" class="btn-primary hidden">Gunakan Lencana</button>
+                    <button id="backToStart" class="btn-secondary">Kembali ke Awal</button>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <!-- Badge Modal -->
+    <div id="badgeModal" class="modal-overlay hidden">
+        <div class="modal badge-modal">
+            <h2>🎉 Lencana Diperoleh!</h2>
+            <p>Pilih satu soal yang salah untuk diulang:</p>
+            <div id="wrongQuestionsList" class="wrong-questions-list">
+                <!-- Wrong questions will be inserted here -->
+            </div>
+            <button id="skipBadge" class="btn-secondary">Lanjut Tanpa Menggunakan</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay hidden">
+        <div class="modal login-modal">
+            <button id="closeLogin" class="modal-close">×</button>
+            <h2>Login Admin</h2>
+            <form id="loginForm" class="login-form">
+                <div id="loginError" class="error-message hidden"></div>
+                <div class="form-group">
+                    <label for="adminUsername">Username</label>
+                    <input type="text" id="adminUsername" placeholder="Masukkan username" required>
+                </div>
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" placeholder="Masukkan password" required>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="modal-overlay hidden">
+        <div class="admin-panel">
+            <header class="admin-header">
+                <h2>Admin Panel</h2>
+                <button id="adminLogout" class="btn-danger">Logout</button>
+            </header>
+
+            <div class="admin-tabs">
+                <button id="themesTab" class="tab-button active">Kelola Tema</button>
+                <button id="leaderboardsTab" class="tab-button">Papan Ranking</button>
+            </div>
+
+            <div class="admin-content">
+                <!-- Themes Content -->
+                <div id="themesContent" class="tab-content active">
+                    <div class="themes-container">
+                        <div class="themes-sidebar">
+                            <div class="sidebar-header">
+                                <h3>Daftar Tema</h3>
+                                <button id="createTheme" class="btn-success">+ Tema Baru</button>
+                            </div>
+                            <div id="themesList" class="themes-list">
+                                <!-- Themes will be inserted here -->
+                            </div>
+                        </div>
+                        <div class="theme-editor">
+                            <div id="themeEditorPlaceholder" class="editor-placeholder">
+                                <div class="placeholder-icon">📚</div>
+                                <h3>Pilih Tema untuk Diedit</h3>
+                                <p>Pilih tema dari daftar di sebelah kiri atau buat tema baru</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leaderboards Content -->
+                <div id="leaderboardsContent" class="tab-content">
+                    <div id="leaderboardsList" class="leaderboards-container">
+                        <!-- Leaderboards will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
