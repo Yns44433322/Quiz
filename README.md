@@ -1,3 +1,6 @@
+// =============================================================================
+// CODE BY NADRETH
+// =====================
 # Aplikasi Kuis Interaktif
 
 Aplikasi kuis interaktif berbasis web dengan tema gelap menggunakan vanilla JavaScript, HTML, dan CSS.
@@ -47,3 +50,7 @@ Edit file `script.js` dan ganti nilai berikut:
 // GANTI nilai di bawah ini dengan informasi jsonbin.io milikmu
 const JSONBIN_BIN_ID = "YOUR_BIN_ID";               // contoh: "68e5a3d743b1c97be95e228b"
 const JSONBIN_MASTER_KEY = "YOUR_JSONBIN_MASTER_KEY"; // JANGAN masukkan real key di repositori publik
+
+// =============================================================================
+// CODE BY NADRETH
+// =====================
