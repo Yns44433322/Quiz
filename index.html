@@ -1,93 +1,363 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUIZ MASTER</title>
+    <title>Quiz Master</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-
-    <div id="admin-icon" class="admin-icon" title="Admin Login">👤</div>
-
-    <div class="container">
-
-        <div id="landing-page" class="page active">
-            <h1 class="title">QUIZ MASTER</h1>
-            <p class="motivation">“Siap menantang otakmu? Jadi juara di dunia Quiz Master!”</p>
-            <button id="start-btn" class="btn btn-primary">Mulai Quiz Master</button>
-        </div>
-
-        <div id="player-entry-page" class="page">
-            <h2 class="subtitle">Masuk Kuis</h2>
-            <form id="player-form">
-                <input type="text" id="username" class="input-field" placeholder="Masukkan Username Anda" required>
-                <input type="text" id="quiz-code" class="input-field" placeholder="Masukkan Kode Quiz" required>
-                <button type="submit" class="btn btn-primary">Mulai Kuis</button>
-                <button type="button" id="back-to-landing-btn" class="btn btn-secondary">Kembali</button>
+    <!-- Login Admin Modal -->
+    <div id="admin-login-modal" class="modal">
+        <div class="modal-content custom-modal-content">
+            <span class="close">&times;</span>
+            <h2>Login Developer</h2>
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label for="admin-username">Username:</label>
+                    <input type="text" id="admin-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Password:</label>
+                    <input type="password" id="admin-password" required>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
             </form>
         </div>
+    </div>
 
-        <div id="quiz-page" class="page">
-            <div id="quiz-content">
-                <div id="quiz-header">
-                    <h2 id="question-number"></h2>
-                    <h3 id="quiz-title-display"></h3>
-                </div>
-                <img id="question-image" src="" alt="Gambar Soal" style="display: none;">
-                <p id="question-text"></p>
-                <div id="answer-options" class="answer-options">
-                    </div>
+    <!-- Modal Custom untuk Alert dan Confirm -->
+    <div id="custom-modal" class="modal">
+        <div class="modal-content custom-modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Peringatan</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message">Pesan akan muncul di sini</p>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancel" class="btn-secondary">Batal</button>
+                <button id="modal-confirm" class="btn-primary">Ya</button>
             </div>
         </div>
-
-        <div id="score-page" class="page">
-            <h2 class="subtitle">Kuis Selesai!</h2>
-            <p>Skor Akhir Anda:</p>
-            <p id="final-score" class="final-score">0</p>
-            <button id="back-to-home-btn" class="btn btn-primary">Kembali ke Halaman Utama</button>
-        </div>
-
     </div>
 
-    <div id="admin-login-popup" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2 class="subtitle">Admin Login</h2>
-            <form id="admin-login-form">
-                <input type="text" id="admin-username" class="input-field" placeholder="Username" required>
-                <input type="password" id="admin-password" class="input-field" placeholder="Password" required>
-                <button type="submit" class="btn btn-primary">Login</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="admin-panel" class="page admin-view">
-        <h2 class="subtitle">Admin Panel</h2>
-        <button id="admin-logout-btn" class="btn btn-secondary" style="position: absolute; top: 20px; right: 20px;">Logout</button>
-        
-        <div class="admin-section">
-            <h3>Buat Quiz Baru</h3>
-            <form id="create-quiz-form">
-                <input type="text" id="new-quiz-title" class="input-field" placeholder="Judul Quiz" required>
-                <div id="questions-container">
+    <!-- Modal untuk Edit Soal -->
+    <div id="edit-question-modal" class="modal">
+        <div class="modal-content custom-modal-content">
+            <div class="modal-header">
+                <h3>Edit Soal</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="edit-question-form">
+                    <div class="form-group">
+                        <label for="edit-quiz-theme">Tema:</label>
+                        <select id="edit-quiz-theme" required>
+                            <!-- Opsi tema akan diisi oleh JavaScript -->
+                        </select>
                     </div>
-                <button type="button" id="add-question-btn" class="btn btn-secondary">Tambah Pertanyaan</button>
-                <button type="submit" class="btn btn-primary">Simpan Quiz</button>
-            </form>
-        </div>
-
-        <div class="admin-section">
-            <h3>Daftar Quiz & Hasil Pemain</h3>
-            <div id="quiz-list"></div>
+                    <div class="form-group">
+                        <label for="edit-question-text">Pertanyaan:</label>
+                        <textarea id="edit-question-text" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-question-image-url">URL Gambar (opsional):</label>
+                        <input type="text" id="edit-question-image-url">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-question-type">Jenis Soal:</label>
+                        <select id="edit-question-type">
+                            <option value="multiple">Pilihan Ganda</option>
+                            <option value="essay">Esai</option>
+                        </select>
+                    </div>
+                    <div id="edit-multiple-choice-admin" class="multiple-choice-admin">
+                        <div class="form-group">
+                            <label for="edit-option-a">Opsi A:</label>
+                            <input type="text" id="edit-option-a">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-option-b">Opsi B:</label>
+                            <input type="text" id="edit-option-b">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-option-c">Opsi C:</label>
+                            <input type="text" id="edit-option-c">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-option-d">Opsi D:</label>
+                            <input type="text" id="edit-option-d">
+                        </div>
+                        <div class="form-group">
+                            <label>Jawaban Benar:</label>
+                            <div class="correct-answer-options">
+                                <label><input type="radio" name="edit-correct-answer" value="A"> A</label>
+                                <label><input type="radio" name="edit-correct-answer" value="B"> B</label>
+                                <label><input type="radio" name="edit-correct-answer" value="C"> C</label>
+                                <label><input type="radio" name="edit-correct-answer" value="D"> D</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-question-timer">Timer (detik):</label>
+                        <input type="number" id="edit-question-timer" value="30" min="10" max="120">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-modal">Batal</button>
+                <button id="save-edit-question" class="btn-primary">Simpan Perubahan</button>
+            </div>
         </div>
     </div>
-    
-    <div id="loader" class="loader-overlay" style="display: none;">
-        <div class="loader-spinner"></div>
+
+    <!-- Halaman Awal -->
+    <div id="home-page" class="page active">
+        <header>
+            <h1>Quiz Master</h1>
+            <div class="profile-icon" id="profile-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M20 21C20 18.8783 19.1571 16.8434 17.6569 15.3431C16.1566 13.8429 14.1217 13 12 13C9.87827 13 7.84344 13.8429 6.34315 15.3431C4.84285 16.8434 4 18.8783 4 21" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+        </header>
+        <main class="main-content">
+            <div class="hero-section">
+                <h2>Uji Pengetahuan Anda</h2>
+                <p>Tantang diri Anda dengan berbagai kuis menarik dan raih posisi tertinggi di leaderboard!</p>
+                <button id="start-quiz-btn" class="btn-primary btn-large">Start Quiz</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Halaman Input Data Pengguna -->
+    <div id="input-page" class="page">
+        <header>
+            <h1>Quiz Master</h1>
+            <div class="profile-icon" id="profile-icon-2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M20 21C20 18.8783 19.1571 16.8434 17.6569 15.3431C16.1566 13.8429 14.1217 13 12 13C9.87827 13 7.84344 13.8429 6.34315 15.3431C4.84285 16.8434 4 18.8783 4 21" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+        </header>
+        <main class="main-content">
+            <div class="form-container">
+                <h2>Masukkan Data Anda</h2>
+                <form id="user-input-form">
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" placeholder="Masukkan username Anda" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="quiz-code">Kode Quiz:</label>
+                        <input type="text" id="quiz-code" placeholder="Contoh: 83027, ENG02" required>
+                    </div>
+                    <button type="submit" class="btn-primary btn-large" id="start-quiz-btn-2">Mulai Quiz</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Halaman Quiz -->
+    <div id="quiz-page" class="page">
+        <header>
+            <div class="quiz-header">
+                <div class="quiz-info">
+                    <span id="quiz-title">Quiz Matematika</span>
+                    <span id="question-counter">Soal 1 dari 10</span>
+                </div>
+                <div class="timer-container">
+                    <div class="timer" id="timer">30</div>
+                </div>
+            </div>
+        </header>
+        <main class="main-content">
+            <div class="question-container">
+                <div class="question-header">
+                    <h3 id="question-text">Pertanyaan akan muncul di sini</h3>
+                    <div id="question-image" class="question-image"></div>
+                </div>
+                <div id="multiple-choice" class="options-container">
+                    <!-- Opsi pilihan ganda akan dimasukkan di sini -->
+                </div>
+                <div id="essay-answer" class="essay-container">
+                    <textarea id="essay-text" placeholder="Ketik jawaban Anda di sini..."></textarea>
+                </div>
+                <div class="navigation-buttons">
+                    <button id="next-question-btn" class="btn-primary">Selanjutnya</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Halaman Hasil -->
+    <div id="results-page" class="page">
+        <header>
+            <h1>Quiz Master</h1>
+        </header>
+        <main class="main-content">
+            <div class="results-container">
+                <h2>Hasil Quiz</h2>
+                <div class="score-display">
+                    <div class="score-circle">
+                        <span id="final-score">0</span>
+                        <span class="score-label">Skor</span>
+                    </div>
+                </div>
+                <div id="badge-container" class="badge-container">
+                    <!-- Badge akan ditampilkan di sini jika diperoleh -->
+                </div>
+                <div class="results-details">
+                    <div class="result-item">
+                        <span class="label">Jawaban Benar:</span>
+                        <span id="correct-answers">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Total Soal:</span>
+                        <span id="total-questions">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Waktu:</span>
+                        <span id="total-time">0 detik</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button id="view-leaderboard-btn" class="btn-secondary">Lihat Leaderboard</button>
+                    <button id="restart-quiz-btn" class="btn-primary">Mulai Quiz Baru</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Halaman Leaderboard -->
+    <div id="leaderboard-page" class="page">
+        <header>
+            <h1>Quiz Master</h1>
+            <button id="back-to-results" class="btn-back">Kembali</button>
+        </header>
+        <main class="main-content">
+            <div class="leaderboard-container">
+                <h2>Leaderboard</h2>
+                <div id="leaderboard-list" class="leaderboard-list">
+                    <!-- Daftar leaderboard akan dimasukkan di sini -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Dashboard Developer -->
+    <div id="admin-dashboard" class="page">
+        <header>
+            <h1>Dashboard Developer</h1>
+            <button id="logout-admin" class="btn-secondary">Logout</button>
+        </header>
+        <main class="main-content">
+            <div class="admin-container">
+                <div class="admin-nav">
+                    <button class="admin-tab active" data-tab="add-question">Tambah Soal</button>
+                    <button class="admin-tab" data-tab="edit-question">Edit Soal</button>
+                    <button class="admin-tab" data-tab="quiz-codes">Kode Quiz</button>
+                    <button class="admin-tab" data-tab="reset-leaderboard">Reset Leaderboard</button>
+                </div>
+                
+                <div id="add-question" class="admin-tab-content active">
+                    <h3>Tambah Soal Baru</h3>
+                    <form id="add-question-form">
+                        <div class="form-group">
+                            <label for="quiz-theme">Tema / Materi Quiz:</label>
+                            <select id="quiz-theme" class="theme-select" required>
+                                <!-- Opsi tema akan diisi oleh JavaScript -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="question-text-admin">Pertanyaan:</label>
+                            <textarea id="question-text-admin" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="question-image-url">URL Gambar (opsional):</label>
+                            <input type="text" id="question-image-url">
+                        </div>
+                        <div class="form-group">
+                            <label for="question-type">Jenis Soal:</label>
+                            <select id="question-type">
+                                <option value="multiple">Pilihan Ganda</option>
+                                <option value="essay">Esai</option>
+                            </select>
+                        </div>
+                        <div id="multiple-choice-admin" class="multiple-choice-admin">
+                            <div class="form-group">
+                                <label for="option-a">Opsi A:</label>
+                                <input type="text" id="option-a">
+                            </div>
+                            <div class="form-group">
+                                <label for="option-b">Opsi B:</label>
+                                <input type="text" id="option-b">
+                            </div>
+                            <div class="form-group">
+                                <label for="option-c">Opsi C:</label>
+                                <input type="text" id="option-c">
+                            </div>
+                            <div class="form-group">
+                                <label for="option-d">Opsi D:</label>
+                                <input type="text" id="option-d">
+                            </div>
+                            <div class="form-group">
+                                <label>Jawaban Benar:</label>
+                                <div class="correct-answer-options">
+                                    <label><input type="radio" name="correct-answer" value="A"> A</label>
+                                    <label><input type="radio" name="correct-answer" value="B"> B</label>
+                                    <label><input type="radio" name="correct-answer" value="C"> C</label>
+                                    <label><input type="radio" name="correct-answer" value="D"> D</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="question-timer">Timer (detik):</label>
+                            <input type="number" id="question-timer" value="30" min="10" max="120">
+                        </div>
+                        <button type="submit" class="btn-primary">Tambah Soal</button>
+                    </form>
+                </div>
+                
+                <div id="edit-question" class="admin-tab-content">
+                    <h3>Edit Soal</h3>
+                    <div id="question-list">
+                        <!-- Daftar soal akan dimasukkan di sini -->
+                    </div>
+                </div>
+                
+                <div id="quiz-codes" class="admin-tab-content">
+                    <h3>Kelola Kode Quiz</h3>
+                    <form id="add-quiz-code-form">
+                        <div class="form-group">
+                            <label for="new-quiz-code">Kode Quiz Baru:</label>
+                            <input type="text" id="new-quiz-code" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="quiz-code-theme">Tema Quiz:</label>
+                            <select id="quiz-code-theme" class="theme-select" required>
+                                <!-- Opsi tema akan diisi oleh JavaScript -->
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">Tambah Kode Quiz</button>
+                    </form>
+                    <div id="quiz-codes-list" class="quiz-codes-list">
+                        <!-- Daftar kode quiz akan dimasukkan di sini -->
+                    </div>
+                </div>
+                
+                <div id="reset-leaderboard" class="admin-tab-content">
+                    <h3>Reset Leaderboard</h3>
+                    <p>Dengan mengklik tombol di bawah, semua data leaderboard akan dihapus permanen.</p>
+                    <button id="reset-leaderboard-btn" class="btn-danger">Reset Leaderboard</button>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script src="script.js"></script>
