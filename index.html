@@ -35,7 +35,10 @@
         </div>
 
         <div id="quiz-page" class="page">
-            <div id="question-corner-counter" class="question-corner-counter"></div>
+            <div class="quiz-top-bar">
+                <div id="question-corner-counter" class="question-corner-counter"></div>
+                <div id="timer-display" class="timer-display">00:00</div>
+            </div>
             <div id="quiz-content">
                 <div id="quiz-header">
                     <h3 id="quiz-title-display"></h3>
@@ -49,11 +52,11 @@
 
         <div id="score-page" class="page">
             <h2 class="subtitle">Kuis Selesai!</h2>
-            <p>Hasil Akhir Anda:</p>
+            <p>Total Poin yang Kamu Dapatkan:</p>
             <div id="final-score-container">
-                 <div id="score-details" class="score-details-final"></div>
+                <div id="final-score" class="final-score">0</div>
+                <div id="score-details"></div>
             </div>
-            <div id="remedial-container"></div>
             <button id="back-to-home-btn" class="btn btn-primary">Kembali ke Halaman Utama</button>
         </div>
 
@@ -90,15 +93,6 @@
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Batas Jumlah Pemain</label>
-                        <div class="player-limit">
-                            <input type="number" id="min-players" class="input-field small" placeholder="Min" value="3" min="1" required>
-                            <span class="limit-separator">sampai</span>
-                            <input type="number" id="max-players" class="input-field small" placeholder="Max" min="3">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
                         <label class="form-label">Pertanyaan</label>
                         <div id="questions-container" class="questions-container">
                             </div>
@@ -118,7 +112,7 @@
             </div>
 
             <div class="admin-section leaderboard-section">
-                <h3>Leaderboard Global</h3>
+                <h3>Leaderboard Global (Berdasarkan Poin)</h3>
                 <div id="global-leaderboard" class="leaderboard">
                     <p>Memuat data leaderboard...</p>
                 </div>
@@ -131,6 +125,16 @@
     </div>
 
     <div id="notification-container"></div>
+
+    <div id="custom-confirm-modal" class="modal">
+        <div class="modal-content">
+            <p id="custom-confirm-text"></p>
+            <div class="modal-actions">
+                <button id="custom-confirm-yes" class="btn btn-danger">Ya, Hapus</button>
+                <button id="custom-confirm-no" class="btn btn-secondary">Batal</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
