@@ -10,59 +10,115 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-
     <div id="admin-icon" class="admin-icon" title="Admin Login">👤</div>
 
-    <!-- Main Container untuk semua halaman kecuali Admin Panel -->
-    <div class="container">
-
+    <!-- Main Container untuk semua halaman -->
+    <div class="main-container">
+        <!-- Halaman Utama -->
         <div id="landing-page" class="page active">
-            <div class="logo-container">
+            <div class="content-box">
                 <h1 class="title">QUIZ MASTER</h1>
                 <div class="logo-subtitle">Challenge Your Knowledge</div>
+                <p class="motivation">"Siap menantang otakmu? Jadi juara di dunia Quiz Master!"</p>
+                <button id="start-btn" class="btn btn-primary">Mulai Quiz Master</button>
             </div>
-            <p class="motivation">"Siap menantang otakmu? Jadi juara di dunia Quiz Master!"</p>
-            <button id="start-btn" class="btn btn-primary">Mulai Quiz Master</button>
         </div>
 
+        <!-- Halaman Input Pemain -->
         <div id="player-entry-page" class="page">
-            <h2 class="subtitle">Masuk Kuis</h2>
-            <form id="player-form">
-                <input type="text" id="username" class="input-field" placeholder="Masukkan Username Anda" required>
-                <input type="text" id="quiz-code" class="input-field" placeholder="Masukkan Kode Quiz" required>
-                <button type="submit" class="btn btn-primary">Mulai Kuis</button>
-                <button type="button" id="back-to-landing-btn" class="btn btn-secondary">Kembali</button>
-            </form>
+            <div class="content-box">
+                <h2 class="subtitle">Masuk Kuis</h2>
+                <form id="player-form">
+                    <input type="text" id="username" class="input-field" placeholder="Masukkan Username Anda" required>
+                    <input type="text" id="quiz-code" class="input-field" placeholder="Masukkan Kode Quiz" required>
+                    <button type="submit" class="btn btn-primary">Mulai Kuis</button>
+                    <button type="button" id="back-to-landing-btn" class="btn btn-secondary">Kembali</button>
+                </form>
+            </div>
         </div>
 
+        <!-- Halaman Kuis -->
         <div id="quiz-page" class="page">
-            <div class="quiz-top-bar">
-                <div id="question-corner-counter" class="question-corner-counter"></div>
-                <div id="timer-display" class="timer-display">00:00</div>
-            </div>
-            <div id="quiz-content">
-                <div id="quiz-header">
-                    <h3 id="quiz-title-display"></h3>
+            <div class="content-box">
+                <div class="quiz-top-bar">
+                    <div id="question-corner-counter" class="question-corner-counter"></div>
+                    <div id="timer-display" class="timer-display">00:00</div>
                 </div>
-                <img id="question-image" src="" alt="Gambar Soal" style="display: none;">
-                <p id="question-text"></p>
-                <div id="answer-options" class="answer-options">
+                <div id="quiz-content">
+                    <div id="quiz-header">
+                        <h3 id="quiz-title-display"></h3>
                     </div>
+                    <img id="question-image" src="" alt="Gambar Soal" style="display: none;">
+                    <p id="question-text"></p>
+                    <div id="answer-options" class="answer-options"></div>
+                </div>
             </div>
         </div>
 
+        <!-- Halaman Skor -->
         <div id="score-page" class="page">
-            <h2 class="subtitle">Kuis Selesai!</h2>
-            <p>Total Poin yang Kamu Dapatkan:</p>
-            <div id="final-score-container">
-                <div id="final-score" class="final-score">0</div>
-                <div id="score-details"></div>
+            <div class="content-box">
+                <h2 class="subtitle">Kuis Selesai!</h2>
+                <p>Total Poin yang Kamu Dapatkan:</p>
+                <div id="final-score-container">
+                    <div id="final-score" class="final-score">0</div>
+                    <div id="score-details"></div>
+                </div>
+                <button id="back-to-home-btn" class="btn btn-primary">Kembali ke Halaman Utama</button>
             </div>
-            <button id="back-to-home-btn" class="btn btn-primary">Kembali ke Halaman Utama</button>
         </div>
 
+        <!-- Admin Panel -->
+        <div id="admin-panel" class="page">
+            <div class="content-box admin-content">
+                <div class="admin-header">
+                    <h2 class="subtitle">Admin Panel</h2>
+                    <button id="admin-logout-btn" class="btn btn-secondary">Logout</button>
+                </div>
+                
+                <div class="admin-sections">
+                    <div class="admin-section">
+                        <h3>Buat Quiz Baru</h3>
+                        <form id="create-quiz-form" class="admin-form">
+                            <div class="form-group">
+                                <label for="new-quiz-title" class="form-label">Judul Quiz</label>
+                                <input type="text" id="new-quiz-title" class="input-field" placeholder="Masukkan judul quiz" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="custom-quiz-code" class="form-label">Kode Quiz (Opsional)</label>
+                                <input type="text" id="custom-quiz-code" class="input-field" placeholder="Kosongkan untuk kode otomatis">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Pertanyaan</label>
+                                <div id="questions-container" class="questions-container"></div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" id="add-question-btn" class="btn btn-secondary">+ Tambah Pertanyaan</button>
+                                <button type="submit" class="btn btn-primary">Simpan Quiz</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>Daftar Quiz & Hasil Pemain</h3>
+                        <div id="quiz-list" class="quiz-list"></div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>Leaderboard Global</h3>
+                        <div id="global-leaderboard" class="leaderboard">
+                            <p>Memuat data leaderboard...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Modal Admin Login -->
     <div id="admin-login-popup" class="modal">
         <div class="modal-content">
             <span class="close-btn">&times;</span>
@@ -75,65 +131,15 @@
         </div>
     </div>
 
-    <!-- Admin Panel sebagai container terpisah -->
-    <div id="admin-panel" class="page">
-        <div class="admin-container">
-            <div class="admin-panel-header">
-                <h2 class="subtitle">Admin Panel</h2>
-                <button id="admin-logout-btn" class="btn btn-secondary admin-logout">Logout</button>
-            </div>
-            
-            <div class="admin-grid">
-                <div class="admin-section">
-                    <h3>Buat Quiz Baru</h3>
-                    <form id="create-quiz-form" class="admin-form">
-                        <div class="form-group">
-                            <label for="new-quiz-title" class="form-label">Judul Quiz</label>
-                            <input type="text" id="new-quiz-title" class="input-field" placeholder="Masukkan judul quiz" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="custom-quiz-code" class="form-label">Kode Quiz (Opsional)</label>
-                            <input type="text" id="custom-quiz-code" class="input-field" placeholder="Kosongkan untuk kode otomatis">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Pertanyaan</label>
-                            <div id="questions-container" class="questions-container">
-                                <!-- Pertanyaan akan ditambahkan di sini -->
-                            </div>
-                        </div>
-                        
-                        <div class="admin-actions">
-                            <button type="button" id="add-question-btn" class="btn btn-secondary">+ Tambah Pertanyaan</button>
-                            <button type="submit" class="btn btn-primary">Simpan Quiz</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="admin-section">
-                    <h3>Daftar Quiz & Hasil Pemain</h3>
-                    <div id="quiz-list" class="quiz-list">
-                        <!-- Daftar quiz akan ditampilkan di sini -->
-                    </div>
-                </div>
-
-                <div class="admin-section leaderboard-section">
-                    <h3>Leaderboard Global (Berdasarkan Poin)</h3>
-                    <div id="global-leaderboard" class="leaderboard">
-                        <p>Memuat data leaderboard...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <!-- Loader -->
     <div id="loader" class="loader-overlay" style="display: none;">
         <div class="loader-spinner"></div>
     </div>
 
+    <!-- Notifikasi -->
     <div id="notification-container"></div>
 
+    <!-- Modal Konfirmasi -->
     <div id="custom-confirm-modal" class="modal">
         <div class="modal-content">
             <p id="custom-confirm-text"></p>
