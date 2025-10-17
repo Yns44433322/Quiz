@@ -143,6 +143,14 @@ body {
     transform: translateY(-2px); 
 }
 
+.edit-quiz-btn {
+    background: var(--primary-blue);
+}
+
+.edit-quiz-btn:hover {
+    background: var(--accent-blue);
+}
+
 /* Input Fields */
 .input-field {
     width: 100%;
@@ -202,6 +210,94 @@ body {
 
 .admin-icon:hover { 
     transform: scale(1.1) rotate(15deg); 
+}
+
+/* ===== PERBAIKAN UTAMA: MODAL STYLES ===== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); /* Lebih gelap */
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(10px); /* Efek blur lebih kuat */
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 400px;
+    position: relative;
+    animation: modalSlideIn 0.3s ease-out;
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    color: var(--light-text);
+}
+
+@keyframes modalSlideIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-50px) scale(0.9); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+/* Modal Besar untuk Edit Quiz */
+.large-modal {
+    max-width: 800px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Form Hint */
+.form-hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 1.8rem;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    background: none;
+    border: none;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    color: var(--accent-red);
+}
+
+.modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 /* ===== ADMIN PANEL STYLES ===== */
@@ -492,49 +588,6 @@ body {
     margin: 20px 0;
 }
 
-/* Modal */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 100;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(5px);
-}
-
-.modal-content {
-    background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
-    padding: 30px;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 400px;
-    position: relative;
-    animation: fadeIn 0.3s;
-    border: 1px solid rgba(124, 58, 237, 0.2);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-}
-
-.close-btn {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 1.5rem;
-    color: #9ca3af;
-    cursor: pointer;
-}
-
-.modal-actions {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
 /* Loader */
 .loader-overlay {
     position: fixed;
@@ -542,12 +595,12 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.9);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(10px);
 }
 
 .loader-spinner {
@@ -667,6 +720,13 @@ body {
     #question-image {
         max-height: 200px;
     }
+    
+    /* Modal responsive */
+    .modal-content {
+        padding: 20px;
+        margin: 20px;
+        width: calc(100% - 40px);
+    }
 }
 
 @media (max-width: 480px) {
@@ -698,37 +758,14 @@ body {
     #question-image {
         max-height: 150px;
     }
-/* ... (kode CSS sebelumnya tetap sama) ... */
-
-/* Modal Besar untuk Edit Quiz */
-.large-modal {
-    max-width: 800px !important;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-/* Form Hint */
-.form-hint {
-    display: block;
-    margin-top: 5px;
-    font-size: 0.8rem;
-    color: #9ca3af;
-}
-
-/* Tombol Edit */
-.edit-quiz-btn {
-    background: var(--primary-blue);
-}
-
-.edit-quiz-btn:hover {
-    background: var(--accent-blue);
-}
-
-/* Responsive untuk Modal Edit */
-@media (max-width: 768px) {
+    
+    /* Responsive untuk Modal Edit */
     .large-modal {
         width: 95% !important;
-        padding: 20px !important;
+        padding: 15px !important;
     }
-}
+    
+    .modal-content {
+        padding: 15px;
+    }
 }

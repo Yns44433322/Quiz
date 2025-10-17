@@ -118,9 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(appData)
             });
             if (!response.ok) throw new Error('Failed to update data.');
+            return true;
         } catch (error) {
             console.error('Error updating data:', error);
             showNotification('Gagal menyimpan data ke server.', 'error');
+            return false;
         } finally {
             showLoader(false);
         }
@@ -407,25 +409,37 @@ document.addEventListener('DOMContentLoaded', () => {
         editQuestionCounter++;
         const div = document.createElement('div');
         div.classList.add('question-block');
+        
+        // Escape nilai untuk mencegah XSS
+        const escapeHTML = (str) => {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+        
         div.innerHTML = `
             <div class="question-header">
                 <h5>Pertanyaan ${editQuestionCounter}</h5>
                 <button type="button" class="delete-question-btn">Hapus</button>
             </div>
             <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" 
-                   value="${questionData ? questionData.text : ''}" required>
+                   value="${questionData ? escapeHTML(questionData.text) : ''}" required>
             <input type="number" class="input-field question-timer" placeholder="Waktu (detik), cth: 30" 
                    value="${questionData ? questionData.timer : 30}" required>
             <input type="url" class="input-field question-image" placeholder="URL Gambar (Opsional)"
-                   value="${questionData ? questionData.image || '' : ''}">
+                   value="${questionData ? escapeHTML(questionData.image || '') : ''}">
             <input type="text" class="input-field option" placeholder="Opsi 1" 
-                   value="${questionData ? questionData.options[0] || '' : ''}" required>
+                   value="${questionData ? escapeHTML(questionData.options[0] || '') : ''}" required>
             <input type="text" class="input-field option" placeholder="Opsi 2" 
-                   value="${questionData ? questionData.options[1] || '' : ''}" required>
+                   value="${questionData ? escapeHTML(questionData.options[1] || '') : ''}" required>
             <input type="text" class="input-field option" placeholder="Opsi 3" 
-                   value="${questionData ? questionData.options[2] || '' : ''}" required>
+                   value="${questionData ? escapeHTML(questionData.options[2] || '') : ''}" required>
             <input type="text" class="input-field option" placeholder="Opsi 4" 
-                   value="${questionData ? questionData.options[3] || '' : ''}" required>
+                   value="${questionData ? escapeHTML(questionData.options[3] || '') : ''}" required>
             <div class="correct-answer-selector">
                 <div class="form-label">Jawaban Benar:</div>
                 <div class="answer-choice-container">
@@ -452,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
         div.querySelector('.delete-question-btn').addEventListener('click', function() {
             if (editQuestionsContainer.children.length > 1) {
                 this.closest('.question-block').remove();
-                reorderQuestionNumbers(editQuestionsContainer, 'editQuestionCounter');
+                reorderEditQuestionNumbers();
             } else {
                 showNotification('Quiz harus memiliki minimal 1 pertanyaan!', 'error');
             }
@@ -468,6 +482,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 hiddenInput.dispatchEvent(new Event('input'));
             }
         });
+    };
+
+    const reorderEditQuestionNumbers = () => {
+        const questionBlocks = editQuestionsContainer.querySelectorAll('.question-block');
+        questionBlocks.forEach((block, index) => {
+            block.querySelector('h5').textContent = `Pertanyaan ${index + 1}`;
+        });
+        editQuestionCounter = questionBlocks.length;
     };
 
     const closeEditModalHandler = () => {
@@ -518,10 +540,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const index = appData.quizzes.findIndex(q => q.code === editingQuiz.code);
         if (index !== -1) {
             appData.quizzes[index] = updatedQuiz;
-            await updateData();
-            showNotification(`Quiz "${title}" berhasil diperbarui!`, 'success');
-            closeEditModalHandler();
-            renderAdminPanel();
+            const success = await updateData();
+            if (success) {
+                showNotification(`Quiz "${title}" berhasil diperbarui!`, 'success');
+                closeEditModalHandler();
+                renderAdminPanel();
+            }
         } else {
             showNotification('Gagal memperbarui quiz!', 'error');
         }
@@ -539,6 +563,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const answer = block.querySelector('.correct-answer-input').value;
             if (answer === "") {
                 isValid = false;
+                block.querySelector('.correct-answer-selector').style.border = '1px solid red';
+            } else {
+                block.querySelector('.correct-answer-selector').style.border = '';
             }
             questions.push({
                 text: block.querySelector('.question-text').value,
@@ -569,14 +596,16 @@ document.addEventListener('DOMContentLoaded', () => {
             updatedAt: new Date().toISOString()
         };
         appData.quizzes.push(newQuiz);
-        await updateData();
-        showNotification(`Quiz berhasil dibuat! Kode: ${newQuiz.code}`, 'success');
-        
-        createQuizForm.reset();
-        questionsContainer.innerHTML = '';
-        questionCounter = 0;
-        addQuestionField();
-        renderAdminPanel();
+        const success = await updateData();
+        if (success) {
+            showNotification(`Quiz berhasil dibuat! Kode: ${newQuiz.code}`, 'success');
+            
+            createQuizForm.reset();
+            questionsContainer.innerHTML = '';
+            questionCounter = 0;
+            addQuestionField();
+            renderAdminPanel();
+        }
     };
 
     const handleAdminLogin = (e) => {
