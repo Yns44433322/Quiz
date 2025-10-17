@@ -162,6 +162,24 @@ body {
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.3);
 }
 
+/* PERBAIKAN: Styling untuk Gambar Pertanyaan */
+#question-image {
+    max-width: 100%;
+    max-height: 300px;
+    width: auto;
+    height: auto;
+    border-radius: 10px;
+    margin: 15px auto;
+    display: block;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(124, 58, 237, 0.3);
+    object-fit: contain;
+}
+
+.question-image-loaded {
+    display: block !important;
+}
+
 /* Admin Icon */
 .admin-icon {
     position: fixed;
@@ -644,6 +662,11 @@ body {
         justify-content: center;
         margin-top: 10px;
     }
+    
+    /* PERBAIKAN: Gambar lebih kecil di mobile */
+    #question-image {
+        max-height: 200px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -670,4 +693,42 @@ body {
     .answer-choice-btn {
         min-width: auto;
     }
+    
+    /* PERBAIKAN: Gambar lebih kecil di perangkat sangat kecil */
+    #question-image {
+        max-height: 150px;
+    }
+/* ... (kode CSS sebelumnya tetap sama) ... */
+
+/* Modal Besar untuk Edit Quiz */
+.large-modal {
+    max-width: 800px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Form Hint */
+.form-hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+/* Tombol Edit */
+.edit-quiz-btn {
+    background: var(--primary-blue);
+}
+
+.edit-quiz-btn:hover {
+    background: var(--accent-blue);
+}
+
+/* Responsive untuk Modal Edit */
+@media (max-width: 768px) {
+    .large-modal {
+        width: 95% !important;
+        padding: 20px !important;
+    }
+}
 }
