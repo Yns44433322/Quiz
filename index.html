@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -16,7 +16,10 @@
     <div class="container">
 
         <div id="landing-page" class="page active">
-            <h1 class="title">QUIZ MASTER</h1>
+            <div class="logo-container">
+                <h1 class="title">QUIZ MASTER</h1>
+                <div class="logo-subtitle">Challenge Your Knowledge</div>
+            </div>
             <p class="motivation">"Siap menantang otakmu? Jadi juara di dunia Quiz Master!"</p>
             <button id="start-btn" class="btn btn-primary">Mulai Quiz Master</button>
         </div>
@@ -77,24 +80,30 @@
             <div class="admin-section">
                 <h3>Buat Quiz Baru</h3>
                 <form id="create-quiz-form" class="admin-form">
-                    <input type="text" id="new-quiz-title" class="input-field" placeholder="Judul Quiz" required>
+                    <div class="form-group">
+                        <label for="new-quiz-title" class="form-label">Judul Quiz</label>
+                        <input type="text" id="new-quiz-title" class="input-field" placeholder="Masukkan judul quiz" required>
+                    </div>
                     
-                    <div class="admin-setting">
-                        <label for="custom-quiz-code">Kode Quiz (Opsional):</label>
+                    <div class="form-group">
+                        <label for="custom-quiz-code" class="form-label">Kode Quiz (Opsional)</label>
                         <input type="text" id="custom-quiz-code" class="input-field" placeholder="Kosongkan untuk kode otomatis">
                     </div>
                     
-                    <div class="admin-setting">
-                        <label>Batas Jumlah Pemain:</label>
+                    <div class="form-group">
+                        <label class="form-label">Batas Jumlah Pemain</label>
                         <div class="player-limit">
                             <input type="number" id="min-players" class="input-field small" placeholder="Min" value="3" min="1" required>
-                            <span>sampai</span>
-                            <input type="number" id="max-players" class="input-field small" placeholder="Max (kosongkan untuk tidak terbatas)" min="3">
+                            <span class="limit-separator">sampai</span>
+                            <input type="number" id="max-players" class="input-field small" placeholder="Max" min="3">
                         </div>
                     </div>
                     
-                    <div id="questions-container" class="questions-container">
-                        <!-- Pertanyaan akan ditambahkan di sini -->
+                    <div class="form-group">
+                        <label class="form-label">Pertanyaan</label>
+                        <div id="questions-container" class="questions-container">
+                            <!-- Pertanyaan akan ditambahkan di sini -->
+                        </div>
                     </div>
                     
                     <div class="admin-actions">
