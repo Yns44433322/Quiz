@@ -117,7 +117,7 @@ body {
     color: #ccc;
 }
 
-/* Tombol */
+/* Tombol (PERBAIKAN UTAMA) */
 .btn {
     padding: 12px 25px;
     border: none;
@@ -125,7 +125,7 @@ body {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Durasi transisi lebih cepat */
     display: inline-block;
     margin: 5px;
     text-decoration: none;
@@ -134,8 +134,27 @@ body {
     transform: translateY(0);
     position: relative;
     overflow: hidden;
-    transform: translateZ(0);
-    will-change: transform;
+    will-change: transform, box-shadow; /* Optimasi performa animasi */
+}
+
+/* [ADD] Menghilangkan outline biru bawaan browser saat tombol di-fokus */
+.btn:focus {
+    outline: none;
+}
+
+/* [ADD] Menambahkan efek visual shadow untuk fokus (pengganti outline) agar aksesibilitas terjaga */
+.btn-primary:focus {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4), 0 10px 25px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary:focus {
+    box-shadow: 0 0 0 4px rgba(75, 85, 99, 0.4), 0 8px 20px rgba(75, 85, 99, 0.4);
+}
+
+/* [ADD] Menambahkan animasi 'press-down' saat tombol ditekan */
+.btn:active {
+    transform: translateY(1px) scale(0.97); /* Tombol bergerak ke bawah dan sedikit mengecil */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Shadow lebih kecil untuk efek 'ditekan' */
 }
 
 .btn::before {
@@ -212,7 +231,7 @@ body {
     transform: scale(1.02);
 }
 
-/* PERBAIKAN: Styling untuk Gambar Pertanyaan */
+/* Styling untuk Gambar Pertanyaan */
 #question-image {
     max-width: 100%;
     max-height: 300px;
@@ -256,7 +275,6 @@ body {
     align-items: center;
     border: 2px solid rgba(255, 255, 255, 0.15);
     transform: scale(1);
-    transform: translateZ(0);
     will-change: transform;
 }
 
@@ -270,7 +288,7 @@ body {
     transition: transform 0.1s ease;
 }
 
-/* ===== PERBAIKAN UTAMA: MODAL STYLES ===== */
+/* Modal Styles */
 .modal {
     display: none;
     position: fixed;
@@ -311,7 +329,6 @@ body {
     transform: scale(0.7);
     opacity: 0;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transform: translateZ(0);
     will-change: transform;
 }
 
@@ -342,7 +359,6 @@ body {
     font-size: 1.8rem;
     color: #9ca3af;
     cursor: pointer;
-    transition: color 0.3s ease;
     background: none;
     border: none;
     width: 30px;
@@ -365,9 +381,7 @@ body {
     gap: 10px;
 }
 
-/* ===== ADMIN PANEL STYLES ===== */
-
-/* Header Admin */
+/* Admin Panel Styles */
 .admin-header {
     display: flex;
     justify-content: space-between;
@@ -377,7 +391,6 @@ body {
     border-bottom: 1px solid rgba(124, 58, 237, 0.3);
 }
 
-/* Sections Admin */
 .admin-sections {
     display: grid;
     grid-template-columns: 1fr;
@@ -404,7 +417,6 @@ body {
     font-size: 1.4rem;
 }
 
-/* Form Admin */
 .admin-form {
     display: flex;
     flex-direction: column;
@@ -422,7 +434,6 @@ body {
     color: #e5e7eb;
 }
 
-/* Container Pertanyaan */
 .questions-container {
     max-height: 400px;
     overflow-y: auto;
@@ -435,7 +446,6 @@ body {
     gap: 15px;
 }
 
-/* Blok Pertanyaan */
 .question-block {
     background: rgba(30, 41, 59, 0.9);
     padding: 20px;
@@ -482,7 +492,6 @@ body {
     transform: scale(1.05);
 }
 
-/* Perbaikan untuk input fields dalam pertanyaan */
 .question-block .input-field {
     margin-bottom: 12px;
     background: rgba(15, 23, 42, 0.8);
@@ -494,7 +503,6 @@ body {
     background: rgba(15, 23, 42, 0.9);
 }
 
-/* Pilihan Jawaban */
 .answer-choice-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -529,16 +537,15 @@ body {
     box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
 }
 
-/* Perbaikan untuk container pilihan jawaban */
 .correct-answer-selector {
     margin-top: 15px;
     padding: 15px;
     background: rgba(15, 23, 42, 0.6);
     border-radius: 8px;
     border: 1px solid #374151;
+    transition: border-color 0.3s ease; /* Transisi untuk border merah */
 }
 
-/* Actions Form */
 .form-actions {
     display: flex;
     gap: 10px;
@@ -547,7 +554,6 @@ body {
     margin-top: 20px;
 }
 
-/* Quiz List */
 .quiz-list {
     display: flex;
     flex-direction: column;
@@ -626,7 +632,7 @@ body {
     color: var(--accent-green);
 }
 
-/* ===== QUIZ PAGE STYLES ===== */
+/* Quiz Page Styles */
 .quiz-top-bar {
     display: flex;
     justify-content: space-between;
@@ -751,12 +757,8 @@ body {
 }
 
 @keyframes spin {
-    0% { 
-        transform: rotate(0deg); 
-    }
-    100% { 
-        transform: rotate(360deg); 
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Notifications */
@@ -792,28 +794,15 @@ body {
 }
 
 @keyframes notificationSlideIn {
-    from { 
-        transform: translateX(100px); 
-        opacity: 0; 
-    }
-    to { 
-        transform: translateX(0); 
-        opacity: 1; 
-    }
+    from { transform: translateX(100px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes notificationFadeOut {
-    from { 
-        opacity: 1; 
-        transform: translateX(0);
-    }
-    to { 
-        opacity: 0; 
-        transform: translateX(20px);
-    }
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(20px); }
 }
 
-/* Perbaikan untuk scroll container */
 .questions-container {
     max-height: 500px;
     overflow-y: auto;
@@ -841,150 +830,47 @@ body {
     background: var(--primary-purple);
 }
 
-/* Animasi untuk modal */
 .modal.active .modal-content {
     animation: modalSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes modalSlideIn {
-    0% {
-        opacity: 0;
-        transform: scale(0.8) translateY(-50px);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+    0% { opacity: 0; transform: scale(0.8) translateY(-50px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
+/* Responsive Design */
 @media (min-width: 768px) {
-    .content-box {
-        max-width: 800px;
-        padding: 40px;
-    }
-    
-    .admin-sections {
-        grid-template-columns: 1fr 1fr;
-    }
-    
-    .admin-section:first-child {
-        grid-column: 1 / -1;
-    }
+    .content-box { max-width: 800px; padding: 40px; }
+    .admin-sections { grid-template-columns: 1fr 1fr; }
+    .admin-section:first-child { grid-column: 1 / -1; }
 }
 
 @media (max-width: 767px) {
-    .title {
-        font-size: 2.5rem;
-    }
-    
-    .subtitle {
-        font-size: 1.5rem;
-    }
-    
-    .content-box {
-        padding: 20px;
-    }
-    
-    .admin-header {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
-    }
-    
-    .answer-options {
-        grid-template-columns: 1fr;
-    }
-    
-    .form-actions {
-        flex-direction: column;
-    }
-    
-    .form-actions .btn {
-        width: 100%;
-        margin: 5px 0;
-    }
-    
-    .quiz-item-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .quiz-controls {
-        width: 100%;
-        justify-content: center;
-        margin-top: 10px;
-    }
-    
-    /* PERBAIKAN: Gambar lebih kecil di mobile */
-    #question-image {
-        max-height: 200px;
-    }
-    
-    /* Modal responsive */
-    .modal-content {
-        padding: 20px;
-        margin: 20px;
-        width: calc(100% - 40px);
-    }
-
-    /* Responsive design untuk pilihan jawaban */
-    .answer-choice-container {
-        grid-template-columns: 1fr;
-    }
+    .title { font-size: 2.5rem; }
+    .subtitle { font-size: 1.5rem; }
+    .content-box { padding: 20px; }
+    .admin-header { flex-direction: column; gap: 15px; text-align: center; }
+    .answer-options { grid-template-columns: 1fr; }
+    .form-actions { flex-direction: column; }
+    .form-actions .btn { width: 100%; margin: 5px 0; }
+    .quiz-item-header { flex-direction: column; align-items: flex-start; }
+    .quiz-controls { width: 100%; justify-content: center; margin-top: 10px; }
+    #question-image { max-height: 200px; }
+    .modal-content { padding: 20px; margin: 20px; width: calc(100% - 40px); }
+    .answer-choice-container { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {
-    body {
-        padding: 10px;
-    }
-    
-    .title {
-        font-size: 2rem;
-    }
-    
-    .final-score {
-        font-size: 3.5rem;
-    }
-    
-    .admin-section {
-        padding: 15px;
-    }
-    
-    .answer-choice-container {
-        flex-direction: column;
-    }
-    
-    .answer-choice-btn {
-        min-width: auto;
-    }
-    
-    /* PERBAIKAN: Gambar lebih kecil di perangkat sangat kecil */
-    #question-image {
-        max-height: 150px;
-    }
-    
-    /* Responsive untuk Modal Edit */
-    .large-modal {
-        width: 95% !important;
-        padding: 15px !important;
-    }
-    
-    .modal-content {
-        padding: 15px;
-    }
-    
-    .question-block {
-        padding: 15px;
-    }
-    
-    .question-header {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-    }
-    
-    .question-header h5 {
-        font-size: 1.1rem;
-    }
+    body { padding: 10px; }
+    .title { font-size: 2rem; }
+    .final-score { font-size: 3.5rem; }
+    .admin-section { padding: 15px; }
+    .answer-choice-btn { min-width: auto; }
+    #question-image { max-height: 150px; }
+    .large-modal { width: 95% !important; padding: 15px !important; }
+    .modal-content { padding: 15px; }
+    .question-block { padding: 15px; }
+    .question-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+    .question-header h5 { font-size: 1.1rem; }
 }

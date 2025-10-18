@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await updateData();
     };
 
-    // --- Fungsi untuk Menambah Pertanyaan (DIPERBAIKI) ---
+    // --- Fungsi untuk Menambah Pertanyaan ---
     const addQuestionField = (container = questionsContainer, isEditMode = false) => {
         let counter;
         if (isEditMode) {
@@ -269,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         container.appendChild(div);
 
-        // Event listener untuk tombol hapus
         div.querySelector('.delete-question-btn').addEventListener('click', function() {
             if (container.children.length > 1) {
                 this.closest('.question-block').remove();
@@ -279,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Event listener untuk pilihan jawaban
         div.querySelector('.answer-choice-container').addEventListener('click', (e) => {
             if (e.target.matches('.answer-choice-btn')) {
                 const container = e.target.parentElement;
@@ -552,65 +550,61 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     };
 
-    // --- Handle Create Quiz (DIPERBAIKI) ---
+    // --- Handle Create Quiz (PERBAIKAN UTAMA) ---
     const handleCreateQuiz = async (e) => {
         e.preventDefault();
         const title = document.getElementById('new-quiz-title').value;
         const customCode = document.getElementById('custom-quiz-code').value.trim();
         const questions = [];
-        const questionBlocks = document.querySelectorAll('.question-block');
         
-        // Validasi pertanyaan
+        // [FIX] Menggunakan selector yang lebih spesifik, hanya di dalam form create-quiz
+        const questionBlocks = createQuizForm.querySelectorAll('.question-block');
+        
         let isValid = true;
-        let hasAnswerSelected = true;
         
         questionBlocks.forEach(block => {
-            const answer = block.querySelector('.correct-answer-input').value;
-            const questionText = block.querySelector('.question-text').value;
-            const options = Array.from(block.querySelectorAll('.option')).map(opt => opt.value);
+            const answerInput = block.querySelector('.correct-answer-input');
+            const questionTextInput = block.querySelector('.question-text');
+            const optionInputs = block.querySelectorAll('.option');
             
-            // Validasi jawaban terpilih
+            const answer = answerInput.value;
+            const questionText = questionTextInput.value.trim();
+            const options = Array.from(optionInputs).map(opt => opt.value.trim());
+            
+            // Reset style validasi
+            questionTextInput.style.border = '';
+            optionInputs.forEach(opt => opt.style.border = '');
+            answerInput.closest('.correct-answer-selector').style.border = '';
+
+            // Validasi: Pertanyaan, semua opsi, dan jawaban benar harus diisi
+            if (!questionText) {
+                isValid = false;
+                questionTextInput.style.border = '1px solid red';
+            }
+            if (options.some(opt => !opt)) {
+                isValid = false;
+                optionInputs.forEach(opt => {
+                    if (!opt.value.trim()) opt.style.border = '1px solid red';
+                });
+            }
             if (answer === "") {
                 isValid = false;
-                hasAnswerSelected = false;
-                block.querySelector('.correct-answer-selector').style.border = '1px solid red';
-            } else {
-                block.querySelector('.correct-answer-selector').style.border = '';
+                answerInput.closest('.correct-answer-selector').style.border = '1px solid red';
             }
             
-            // Validasi pertanyaan tidak kosong
-            if (!questionText.trim()) {
-                isValid = false;
-                block.querySelector('.question-text').style.border = '1px solid red';
-            } else {
-                block.querySelector('.question-text').style.border = '';
+            if (isValid) {
+                 questions.push({
+                    text: questionText,
+                    image: block.querySelector('.question-image').value,
+                    timer: parseInt(block.querySelector('.question-timer').value, 10) || 30,
+                    options: options,
+                    answer: parseInt(answer)
+                });
             }
-            
-            // Validasi opsi tidak kosong
-            options.forEach((option, index) => {
-                if (!option.trim()) {
-                    isValid = false;
-                    block.querySelectorAll('.option')[index].style.border = '1px solid red';
-                } else {
-                    block.querySelectorAll('.option')[index].style.border = '';
-                }
-            });
-            
-            questions.push({
-                text: questionText,
-                image: block.querySelector('.question-image').value,
-                timer: parseInt(block.querySelector('.question-timer').value, 10) || 30,
-                options: options,
-                answer: parseInt(answer)
-            });
         });
 
         if (!isValid) {
-            if (!hasAnswerSelected) {
-                showNotification('Pastikan memilih jawaban benar untuk setiap pertanyaan!', 'error');
-            } else {
-                showNotification('Pastikan semua field telah diisi dengan benar!', 'error');
-            }
+            showNotification('Pastikan semua field pertanyaan, opsi, dan jawaban benar telah diisi!', 'error');
             return;
         }
 
@@ -645,6 +639,8 @@ document.addEventListener('DOMContentLoaded', () => {
             addQuestionField(); // Tambah pertanyaan pertama
             renderAdminPanel();
         } else {
+            // Jika gagal, kembalikan data appData ke state sebelumnya
+            appData.quizzes.pop();
             showNotification('Gagal menyimpan quiz!', 'error');
         }
     };
@@ -671,18 +667,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('admin-login-popup').classList.add('active');
     });
     
-    document.querySelector('.close-btn').addEventListener('click', () => {
+    document.querySelector('#admin-login-popup .close-btn').addEventListener('click', () => {
         document.getElementById('admin-login-popup').classList.remove('active');
     });
     
     document.getElementById('admin-logout-btn').addEventListener('click', () => showPage('landing-page'));
     
-    // PERBAIKAN: Event listener untuk tombol tambah pertanyaan
     document.getElementById('add-question-btn').addEventListener('click', () => {
         addQuestionField(questionsContainer, false);
     });
     
-    // Event listeners untuk edit quiz
     editAddQuestionBtn.addEventListener('click', () => {
         addQuestionField(editQuestionsContainer, true);
     });
@@ -710,11 +704,9 @@ document.addEventListener('DOMContentLoaded', () => {
         await fetchData();
         showPage('landing-page');
         
-        // Reset dan inisialisasi counter pertanyaan
         questionCounter = 0;
         questionsContainer.innerHTML = '';
         
-        // Tambah pertanyaan pertama
         addQuestionField(questionsContainer, false);
     };
 
