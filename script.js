@@ -550,50 +550,56 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     };
 
-    // --- Handle Create Quiz (PERBAIKAN UTAMA) ---
+    // --- Handle Create Quiz (YANG DIPERBAIKI) ---
     const handleCreateQuiz = async (e) => {
         e.preventDefault();
-        const title = document.getElementById('new-quiz-title').value;
+        const title = document.getElementById('new-quiz-title').value.trim();
         const customCode = document.getElementById('custom-quiz-code').value.trim();
-        const questions = [];
         
-        // [FIX] Menggunakan selector yang lebih spesifik, hanya di dalam form create-quiz
+        if (!title) {
+            showNotification('Judul Quiz tidak boleh kosong!', 'error');
+            return;
+        }
+
+        const questions = [];
         const questionBlocks = createQuizForm.querySelectorAll('.question-block');
         
-        let isValid = true;
-        
-        questionBlocks.forEach(block => {
-            const answerInput = block.querySelector('.correct-answer-input');
+        let allQuestionsValid = true;
+
+        for (const block of questionBlocks) {
             const questionTextInput = block.querySelector('.question-text');
             const optionInputs = block.querySelectorAll('.option');
-            
-            const answer = answerInput.value;
+            const answerInput = block.querySelector('.correct-answer-input');
+
             const questionText = questionTextInput.value.trim();
             const options = Array.from(optionInputs).map(opt => opt.value.trim());
-            
-            // Reset style validasi
+            const answer = answerInput.value;
+
+            // Reset styles
             questionTextInput.style.border = '';
             optionInputs.forEach(opt => opt.style.border = '');
             answerInput.closest('.correct-answer-selector').style.border = '';
 
-            // Validasi: Pertanyaan, semua opsi, dan jawaban benar harus diisi
+            let currentQuestionValid = true;
             if (!questionText) {
-                isValid = false;
                 questionTextInput.style.border = '1px solid red';
+                currentQuestionValid = false;
             }
-            if (options.some(opt => !opt)) {
-                isValid = false;
-                optionInputs.forEach(opt => {
-                    if (!opt.value.trim()) opt.style.border = '1px solid red';
-                });
-            }
-            if (answer === "") {
-                isValid = false;
+            options.forEach((opt, index) => {
+                if (!opt) {
+                    optionInputs[index].style.border = '1px solid red';
+                    currentQuestionValid = false;
+                }
+            });
+            if (answer === '') {
                 answerInput.closest('.correct-answer-selector').style.border = '1px solid red';
+                currentQuestionValid = false;
             }
-            
-            if (isValid) {
-                 questions.push({
+
+            if (!currentQuestionValid) {
+                allQuestionsValid = false;
+            } else {
+                questions.push({
                     text: questionText,
                     image: block.querySelector('.question-image').value,
                     timer: parseInt(block.querySelector('.question-timer').value, 10) || 30,
@@ -601,23 +607,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     answer: parseInt(answer)
                 });
             }
-        });
+        }
 
-        if (!isValid) {
+        if (!allQuestionsValid) {
             showNotification('Pastikan semua field pertanyaan, opsi, dan jawaban benar telah diisi!', 'error');
             return;
         }
 
-        // Generate kode quiz
         let quizCode = customCode ? customCode.toUpperCase() : `QM${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-        // Cek kode duplikat
         if (appData.quizzes.some(q => q.code === quizCode)) {
             showNotification('Kode quiz ini sudah digunakan. Coba kode lain.', 'error');
             return;
         }
 
-        // Buat quiz baru
         const newQuiz = { 
             title, 
             code: quizCode, 
@@ -631,17 +634,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (success) {
             showNotification(`Quiz berhasil dibuat! Kode: ${newQuiz.code}`, 'success');
-            
-            // Reset form
             createQuizForm.reset();
             questionsContainer.innerHTML = '';
             questionCounter = 0;
-            addQuestionField(); // Tambah pertanyaan pertama
+            addQuestionField();
             renderAdminPanel();
         } else {
-            // Jika gagal, kembalikan data appData ke state sebelumnya
-            appData.quizzes.pop();
-            showNotification('Gagal menyimpan quiz!', 'error');
+            appData.quizzes.pop(); // Hapus kuis yang gagal disimpan dari state lokal
+            showNotification('Gagal menyimpan quiz ke server!', 'error');
         }
     };
 
