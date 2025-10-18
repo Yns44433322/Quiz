@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
         baseURL: 'https://api.jsonbin.io/v3/b',
         binId: '68e5a3d743b1c97be95e228b',
         masterKey: '$2a$10$IvGjmmJFZX2ZQ6eoZ/42vOTL54rzpy83ya/pnesExdMWpKWV6MDGG',
-        accessKey: '$2a$10$T.eHULy6ck/GKr48zzsI2OKfuZA.KsVl.kwHHEoiJEEf/abmhaNZm'
+        accessKey: '$2a$10$4LI3uk/NOJB5C.etWvuva.EeQ153dGFyo.FwSQ9Xsf3xhwNVBLg4i'
     };
     
     // --- DOM Elements ---
@@ -99,9 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Failed to fetch data.');
             const data = await response.json();
             appData = data.record;
+            console.log('Data loaded:', appData);
         } catch (error) {
             console.error('Error fetching data:', error);
             appData = { quizzes: [], results: [] };
+            showNotification('Gagal memuat data dari server.', 'error');
         } finally {
             showLoader(false);
         }
@@ -120,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(appData)
             });
             if (!response.ok) throw new Error('Failed to update data.');
+            console.log('Data saved successfully');
             return true;
         } catch (error) {
             console.error('Error updating data:', error);
@@ -300,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
             quizListContainer.innerHTML = '<p>Belum ada quiz yang dibuat.</p>';
             return;
         }
+        
         appData.quizzes.forEach(quiz => {
             const quizItem = document.createElement('div');
             quizItem.classList.add('quiz-item');
@@ -342,6 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Handle Create Quiz ---
     const handleCreateQuiz = async (e) => {
         e.preventDefault();
+        console.log('Create quiz form submitted');
+        
         const title = document.getElementById('new-quiz-title').value.trim();
         const customCode = document.getElementById('custom-quiz-code').value.trim();
         
@@ -399,7 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!currentQuestionValid) {
                 allQuestionsValid = false;
-                showNotification('Harap periksa kembali semua field yang ditandai dengan warna merah!', 'error');
             } else {
                 questions.push({
                     text: questionText,
@@ -412,6 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!allQuestionsValid) {
+            showNotification('Pastikan semua field pertanyaan, opsi, dan jawaban benar telah diisi!', 'error');
             return;
         }
 
