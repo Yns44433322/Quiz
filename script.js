@@ -36,10 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentQuiz = null;
     let currentQuestionIndex = 0;
     let totalPoints = 0;
-    let questionCounter = 0;
+    let questionCounter = 0; // Counter untuk pertanyaan di form buat quiz
     let questionTimer;
-    let editingQuiz = null; // Menyimpan quiz yang sedang diedit
-    let editQuestionCounter = 0; // Counter untuk pertanyaan di modal edit
+    let editingQuiz = null;
+    let editQuestionCounter = 0;
 
     // --- Notifikasi Kustom ---
     const showNotification = (message, type = 'info') => {
@@ -54,13 +54,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const showCustomConfirm = (message) => {
         return new Promise((resolve) => {
             document.getElementById('custom-confirm-text').textContent = message;
-            customConfirmModal.style.display = 'flex';
+            customConfirmModal.classList.add('active');
 
             const yesBtn = document.getElementById('custom-confirm-yes');
             const noBtn = document.getElementById('custom-confirm-no');
 
             const cleanUp = (result) => {
-                customConfirmModal.style.display = 'none';
+                customConfirmModal.classList.remove('active');
                 yesBtn.removeEventListener('click', yesListener);
                 noBtn.removeEventListener('click', noListener);
                 resolve(result);
@@ -82,7 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
         adminIcon.style.display = isQuizActive ? 'none' : 'flex';
     };
 
-    const showLoader = (show) => { loader.style.display = show ? 'flex' : 'none'; };
+    const showLoader = (show) => { 
+        loader.style.display = show ? 'flex' : 'none'; 
+    };
 
     // --- API Interaction ---
     const fetchData = async () => {
@@ -176,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             timerDisplay.textContent = `00:${String(timeLeft).padStart(2, '0')}`;
             if (timeLeft <= 0) {
                 clearInterval(questionTimer);
-                selectAnswer(-1, null, timeLimit, 0); // Waktu habis
+                selectAnswer(-1, null, timeLimit, 0);
             }
         }, 1000);
 
@@ -229,6 +231,236 @@ document.addEventListener('DOMContentLoaded', () => {
         await updateData();
     };
 
+    // --- Fungsi untuk Menambah Pertanyaan (DIPERBAIKI) ---
+    const addQuestionField = (container = questionsContainer, isEditMode = false) => {
+        let counter;
+        if (isEditMode) {
+            editQuestionCounter++;
+            counter = editQuestionCounter;
+        } else {
+            questionCounter++;
+            counter = questionCounter;
+        }
+        
+        const div = document.createElement('div');
+        div.classList.add('question-block');
+        div.innerHTML = `
+            <div class="question-header">
+                <h5>Pertanyaan ${counter}</h5>
+                <button type="button" class="delete-question-btn">Hapus</button>
+            </div>
+            <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" required>
+            <input type="number" class="input-field question-timer" placeholder="Waktu (detik), cth: 30" value="30" required>
+            <input type="url" class="input-field question-image" placeholder="URL Gambar (Opsional)">
+            <input type="text" class="input-field option" placeholder="Opsi 1" required>
+            <input type="text" class="input-field option" placeholder="Opsi 2" required>
+            <input type="text" class="input-field option" placeholder="Opsi 3" required>
+            <input type="text" class="input-field option" placeholder="Opsi 4" required>
+            <div class="correct-answer-selector">
+                <div class="form-label">Jawaban Benar:</div>
+                <div class="answer-choice-container">
+                    <button type="button" class="answer-choice-btn" data-value="0">Opsi 1</button>
+                    <button type="button" class="answer-choice-btn" data-value="1">Opsi 2</button>
+                    <button type="button" class="answer-choice-btn" data-value="2">Opsi 3</button>
+                    <button type="button" class="answer-choice-btn" data-value="3">Opsi 4</button>
+                </div>
+            </div>
+            <input type="hidden" class="correct-answer-input" value="">
+        `;
+        container.appendChild(div);
+
+        // Event listener untuk tombol hapus
+        div.querySelector('.delete-question-btn').addEventListener('click', function() {
+            if (container.children.length > 1) {
+                this.closest('.question-block').remove();
+                reorderQuestionNumbers(container, isEditMode);
+            } else {
+                showNotification('Quiz harus memiliki minimal 1 pertanyaan!', 'error');
+            }
+        });
+
+        // Event listener untuk pilihan jawaban
+        div.querySelector('.answer-choice-container').addEventListener('click', (e) => {
+            if (e.target.matches('.answer-choice-btn')) {
+                const container = e.target.parentElement;
+                container.querySelectorAll('.answer-choice-btn').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                e.target.classList.add('selected');
+                const hiddenInput = container.closest('.question-block').querySelector('.correct-answer-input');
+                hiddenInput.value = e.target.dataset.value;
+            }
+        });
+    };
+
+    const reorderQuestionNumbers = (container = questionsContainer, isEditMode = false) => {
+        const questionBlocks = container.querySelectorAll('.question-block');
+        questionBlocks.forEach((block, index) => {
+            block.querySelector('h5').textContent = `Pertanyaan ${index + 1}`;
+        });
+        
+        if (isEditMode) {
+            editQuestionCounter = questionBlocks.length;
+        } else {
+            questionCounter = questionBlocks.length;
+        }
+    };
+
+    // --- Fungsi untuk Edit Quiz ---
+    const openEditQuizModal = (quizCode) => {
+        editingQuiz = appData.quizzes.find(q => q.code === quizCode);
+        if (!editingQuiz) {
+            showNotification('Quiz tidak ditemukan!', 'error');
+            return;
+        }
+
+        editQuizTitle.value = editingQuiz.title;
+        editQuizCode.value = editingQuiz.code;
+        
+        editQuestionsContainer.innerHTML = '';
+        editQuestionCounter = 0;
+        
+        editingQuiz.questions.forEach(question => {
+            addEditQuestionField(question);
+        });
+        
+        editQuizModal.classList.add('active');
+    };
+
+    const addEditQuestionField = (questionData = null) => {
+        editQuestionCounter++;
+        const div = document.createElement('div');
+        div.classList.add('question-block');
+        
+        const escapeHTML = (str) => {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+        
+        div.innerHTML = `
+            <div class="question-header">
+                <h5>Pertanyaan ${editQuestionCounter}</h5>
+                <button type="button" class="delete-question-btn">Hapus</button>
+            </div>
+            <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" 
+                   value="${questionData ? escapeHTML(questionData.text) : ''}" required>
+            <input type="number" class="input-field question-timer" placeholder="Waktu (detik), cth: 30" 
+                   value="${questionData ? questionData.timer : 30}" required>
+            <input type="url" class="input-field question-image" placeholder="URL Gambar (Opsional)"
+                   value="${questionData ? escapeHTML(questionData.image || '') : ''}">
+            <input type="text" class="input-field option" placeholder="Opsi 1" 
+                   value="${questionData ? escapeHTML(questionData.options[0] || '') : ''}" required>
+            <input type="text" class="input-field option" placeholder="Opsi 2" 
+                   value="${questionData ? escapeHTML(questionData.options[1] || '') : ''}" required>
+            <input type="text" class="input-field option" placeholder="Opsi 3" 
+                   value="${questionData ? escapeHTML(questionData.options[2] || '') : ''}" required>
+            <input type="text" class="input-field option" placeholder="Opsi 4" 
+                   value="${questionData ? escapeHTML(questionData.options[3] || '') : ''}" required>
+            <div class="correct-answer-selector">
+                <div class="form-label">Jawaban Benar:</div>
+                <div class="answer-choice-container">
+                    <button type="button" class="answer-choice-btn" data-value="0">Opsi 1</button>
+                    <button type="button" class="answer-choice-btn" data-value="1">Opsi 2</button>
+                    <button type="button" class="answer-choice-btn" data-value="2">Opsi 3</button>
+                    <button type="button" class="answer-choice-btn" data-value="3">Opsi 4</button>
+                </div>
+            </div>
+            <input type="hidden" class="correct-answer-input" value="${questionData ? questionData.answer : ''}">
+        `;
+        editQuestionsContainer.appendChild(div);
+
+        if (questionData && questionData.answer !== undefined) {
+            const answerButtons = div.querySelectorAll('.answer-choice-btn');
+            answerButtons.forEach((btn, index) => {
+                if (index === questionData.answer) {
+                    btn.classList.add('selected');
+                }
+            });
+        }
+
+        div.querySelector('.delete-question-btn').addEventListener('click', function() {
+            if (editQuestionsContainer.children.length > 1) {
+                this.closest('.question-block').remove();
+                reorderQuestionNumbers(editQuestionsContainer, true);
+            } else {
+                showNotification('Quiz harus memiliki minimal 1 pertanyaan!', 'error');
+            }
+        });
+
+        div.querySelector('.answer-choice-container').addEventListener('click', (e) => {
+            if (e.target.matches('.answer-choice-btn')) {
+                const container = e.target.parentElement;
+                container.querySelectorAll('.answer-choice-btn').forEach(btn => btn.classList.remove('selected'));
+                e.target.classList.add('selected');
+                const hiddenInput = container.closest('.question-block').querySelector('.correct-answer-input');
+                hiddenInput.value = e.target.dataset.value;
+            }
+        });
+    };
+
+    const closeEditModalHandler = () => {
+        editQuizModal.classList.remove('active');
+        editingQuiz = null;
+        editQuestionsContainer.innerHTML = '';
+        editQuestionCounter = 0;
+    };
+
+    const handleEditQuiz = async (e) => {
+        e.preventDefault();
+        
+        const title = editQuizTitle.value;
+        const questions = [];
+        const questionBlocks = editQuestionsContainer.querySelectorAll('.question-block');
+        
+        let isValid = true;
+        questionBlocks.forEach(block => {
+            const answer = block.querySelector('.correct-answer-input').value;
+            if (answer === "") {
+                isValid = false;
+                block.querySelector('.correct-answer-selector').style.border = '1px solid red';
+            } else {
+                block.querySelector('.correct-answer-selector').style.border = '';
+            }
+            questions.push({
+                text: block.querySelector('.question-text').value,
+                image: block.querySelector('.question-image').value,
+                timer: parseInt(block.querySelector('.question-timer').value, 10) || 30,
+                options: Array.from(block.querySelectorAll('.option')).map(opt => opt.value),
+                answer: parseInt(answer)
+            });
+        });
+
+        if (!isValid) {
+            showNotification('Pastikan semua field dan jawaban benar telah diisi.', 'error');
+            return;
+        }
+
+        const updatedQuiz = { 
+            ...editingQuiz, 
+            title, 
+            questions,
+            updatedAt: new Date().toISOString()
+        };
+
+        const index = appData.quizzes.findIndex(q => q.code === editingQuiz.code);
+        if (index !== -1) {
+            appData.quizzes[index] = updatedQuiz;
+            const success = await updateData();
+            if (success) {
+                showNotification(`Quiz "${title}" berhasil diperbarui!`, 'success');
+                closeEditModalHandler();
+                renderAdminPanel();
+            }
+        } else {
+            showNotification('Gagal memperbarui quiz!', 'error');
+        }
+    };
+
     // --- Admin Logic ---
     const renderAdminPanel = () => {
         quizListContainer.innerHTML = '';
@@ -274,7 +506,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Event listener untuk tombol edit
         document.querySelectorAll('.edit-quiz-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const quizCode = e.target.getAttribute('data-code');
@@ -321,236 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     };
 
-    // --- Fungsi untuk Menambah Pertanyaan ---
-    const addQuestionField = (container = questionsContainer, counter = 'questionCounter') => {
-        window[counter]++;
-        const div = document.createElement('div');
-        div.classList.add('question-block');
-        div.innerHTML = `
-            <div class="question-header">
-                <h5>Pertanyaan ${window[counter]}</h5>
-                <button type="button" class="delete-question-btn">Hapus</button>
-            </div>
-            <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" required>
-            <input type="number" class="input-field question-timer" placeholder="Waktu (detik), cth: 30" value="30" required>
-            <input type="url" class="input-field question-image" placeholder="URL Gambar (Opsional)">
-            <input type="text" class="input-field option" placeholder="Opsi 1" required>
-            <input type="text" class="input-field option" placeholder="Opsi 2" required>
-            <input type="text" class="input-field option" placeholder="Opsi 3" required>
-            <input type="text" class="input-field option" placeholder="Opsi 4" required>
-            <div class="correct-answer-selector">
-                <div class="form-label">Jawaban Benar:</div>
-                <div class="answer-choice-container">
-                    <button type="button" class="answer-choice-btn" data-value="0">Opsi 1</button>
-                    <button type="button" class="answer-choice-btn" data-value="1">Opsi 2</button>
-                    <button type="button" class="answer-choice-btn" data-value="2">Opsi 3</button>
-                    <button type="button" class="answer-choice-btn" data-value="3">Opsi 4</button>
-                </div>
-            </div>
-            <input type="hidden" class="correct-answer-input" value="">
-        `;
-        container.appendChild(div);
-
-        div.querySelector('.delete-question-btn').addEventListener('click', function() {
-            if (container.children.length > 1) {
-                this.closest('.question-block').remove();
-                reorderQuestionNumbers(container, counter);
-            } else {
-                showNotification('Quiz harus memiliki minimal 1 pertanyaan!', 'error');
-            }
-        });
-
-        div.querySelector('.answer-choice-container').addEventListener('click', (e) => {
-            if (e.target.matches('.answer-choice-btn')) {
-                const container = e.target.parentElement;
-                container.querySelectorAll('.answer-choice-btn').forEach(btn => btn.classList.remove('selected'));
-                e.target.classList.add('selected');
-                const hiddenInput = container.closest('.question-block').querySelector('.correct-answer-input');
-                hiddenInput.value = e.target.dataset.value;
-                hiddenInput.dispatchEvent(new Event('input'));
-            }
-        });
-    };
-
-    const reorderQuestionNumbers = (container = questionsContainer, counter = 'questionCounter') => {
-        const questionBlocks = container.querySelectorAll('.question-block');
-        questionBlocks.forEach((block, index) => {
-            block.querySelector('h5').textContent = `Pertanyaan ${index + 1}`;
-        });
-        window[counter] = questionBlocks.length;
-    };
-
-    // --- Fungsi untuk Edit Quiz ---
-    const openEditQuizModal = (quizCode) => {
-        editingQuiz = appData.quizzes.find(q => q.code === quizCode);
-        if (!editingQuiz) {
-            showNotification('Quiz tidak ditemukan!', 'error');
-            return;
-        }
-
-        // Isi form dengan data quiz
-        editQuizTitle.value = editingQuiz.title;
-        editQuizCode.value = editingQuiz.code;
-        
-        // Kosongkan container pertanyaan
-        editQuestionsContainer.innerHTML = '';
-        editQuestionCounter = 0;
-        
-        // Tambahkan pertanyaan dari quiz yang akan diedit
-        editingQuiz.questions.forEach(question => {
-            addEditQuestionField(question);
-        });
-        
-        // Tampilkan modal
-        editQuizModal.style.display = 'flex';
-    };
-
-    const addEditQuestionField = (questionData = null) => {
-        editQuestionCounter++;
-        const div = document.createElement('div');
-        div.classList.add('question-block');
-        
-        // Escape nilai untuk mencegah XSS
-        const escapeHTML = (str) => {
-            if (!str) return '';
-            return str
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        };
-        
-        div.innerHTML = `
-            <div class="question-header">
-                <h5>Pertanyaan ${editQuestionCounter}</h5>
-                <button type="button" class="delete-question-btn">Hapus</button>
-            </div>
-            <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" 
-                   value="${questionData ? escapeHTML(questionData.text) : ''}" required>
-            <input type="number" class="input-field question-timer" placeholder="Waktu (detik), cth: 30" 
-                   value="${questionData ? questionData.timer : 30}" required>
-            <input type="url" class="input-field question-image" placeholder="URL Gambar (Opsional)"
-                   value="${questionData ? escapeHTML(questionData.image || '') : ''}">
-            <input type="text" class="input-field option" placeholder="Opsi 1" 
-                   value="${questionData ? escapeHTML(questionData.options[0] || '') : ''}" required>
-            <input type="text" class="input-field option" placeholder="Opsi 2" 
-                   value="${questionData ? escapeHTML(questionData.options[1] || '') : ''}" required>
-            <input type="text" class="input-field option" placeholder="Opsi 3" 
-                   value="${questionData ? escapeHTML(questionData.options[2] || '') : ''}" required>
-            <input type="text" class="input-field option" placeholder="Opsi 4" 
-                   value="${questionData ? escapeHTML(questionData.options[3] || '') : ''}" required>
-            <div class="correct-answer-selector">
-                <div class="form-label">Jawaban Benar:</div>
-                <div class="answer-choice-container">
-                    <button type="button" class="answer-choice-btn" data-value="0">Opsi 1</button>
-                    <button type="button" class="answer-choice-btn" data-value="1">Opsi 2</button>
-                    <button type="button" class="answer-choice-btn" data-value="2">Opsi 3</button>
-                    <button type="button" class="answer-choice-btn" data-value="3">Opsi 4</button>
-                </div>
-            </div>
-            <input type="hidden" class="correct-answer-input" value="${questionData ? questionData.answer : ''}">
-        `;
-        editQuestionsContainer.appendChild(div);
-
-        // Jika ada data pertanyaan, tandai jawaban yang benar
-        if (questionData && questionData.answer !== undefined) {
-            const answerButtons = div.querySelectorAll('.answer-choice-btn');
-            answerButtons.forEach((btn, index) => {
-                if (index === questionData.answer) {
-                    btn.classList.add('selected');
-                }
-            });
-        }
-
-        div.querySelector('.delete-question-btn').addEventListener('click', function() {
-            if (editQuestionsContainer.children.length > 1) {
-                this.closest('.question-block').remove();
-                reorderEditQuestionNumbers();
-            } else {
-                showNotification('Quiz harus memiliki minimal 1 pertanyaan!', 'error');
-            }
-        });
-
-        div.querySelector('.answer-choice-container').addEventListener('click', (e) => {
-            if (e.target.matches('.answer-choice-btn')) {
-                const container = e.target.parentElement;
-                container.querySelectorAll('.answer-choice-btn').forEach(btn => btn.classList.remove('selected'));
-                e.target.classList.add('selected');
-                const hiddenInput = container.closest('.question-block').querySelector('.correct-answer-input');
-                hiddenInput.value = e.target.dataset.value;
-                hiddenInput.dispatchEvent(new Event('input'));
-            }
-        });
-    };
-
-    const reorderEditQuestionNumbers = () => {
-        const questionBlocks = editQuestionsContainer.querySelectorAll('.question-block');
-        questionBlocks.forEach((block, index) => {
-            block.querySelector('h5').textContent = `Pertanyaan ${index + 1}`;
-        });
-        editQuestionCounter = questionBlocks.length;
-    };
-
-    const closeEditModalHandler = () => {
-        editQuizModal.style.display = 'none';
-        editingQuiz = null;
-        editQuestionsContainer.innerHTML = '';
-        editQuestionCounter = 0;
-    };
-
-    const handleEditQuiz = async (e) => {
-        e.preventDefault();
-        
-        const title = editQuizTitle.value;
-        const questions = [];
-        const questionBlocks = editQuestionsContainer.querySelectorAll('.question-block');
-        
-        let isValid = true;
-        questionBlocks.forEach(block => {
-            const answer = block.querySelector('.correct-answer-input').value;
-            if (answer === "") {
-                isValid = false;
-                block.querySelector('.correct-answer-selector').style.border = '1px solid red';
-            } else {
-                block.querySelector('.correct-answer-selector').style.border = '';
-            }
-            questions.push({
-                text: block.querySelector('.question-text').value,
-                image: block.querySelector('.question-image').value,
-                timer: parseInt(block.querySelector('.question-timer').value, 10) || 30,
-                options: Array.from(block.querySelectorAll('.option')).map(opt => opt.value),
-                answer: parseInt(answer)
-            });
-        });
-
-        if (!isValid) {
-            showNotification('Pastikan semua field dan jawaban benar telah diisi.', 'error');
-            return;
-        }
-
-        // Update quiz yang sedang diedit
-        const updatedQuiz = { 
-            ...editingQuiz, 
-            title, 
-            questions,
-            updatedAt: new Date().toISOString()
-        };
-
-        const index = appData.quizzes.findIndex(q => q.code === editingQuiz.code);
-        if (index !== -1) {
-            appData.quizzes[index] = updatedQuiz;
-            const success = await updateData();
-            if (success) {
-                showNotification(`Quiz "${title}" berhasil diperbarui!`, 'success');
-                closeEditModalHandler();
-                renderAdminPanel();
-            }
-        } else {
-            showNotification('Gagal memperbarui quiz!', 'error');
-        }
-    };
-
+    // --- Handle Create Quiz (DIPERBAIKI) ---
     const handleCreateQuiz = async (e) => {
         e.preventDefault();
         const title = document.getElementById('new-quiz-title').value;
@@ -558,36 +560,70 @@ document.addEventListener('DOMContentLoaded', () => {
         const questions = [];
         const questionBlocks = document.querySelectorAll('.question-block');
         
+        // Validasi pertanyaan
         let isValid = true;
+        let hasAnswerSelected = true;
+        
         questionBlocks.forEach(block => {
             const answer = block.querySelector('.correct-answer-input').value;
+            const questionText = block.querySelector('.question-text').value;
+            const options = Array.from(block.querySelectorAll('.option')).map(opt => opt.value);
+            
+            // Validasi jawaban terpilih
             if (answer === "") {
                 isValid = false;
+                hasAnswerSelected = false;
                 block.querySelector('.correct-answer-selector').style.border = '1px solid red';
             } else {
                 block.querySelector('.correct-answer-selector').style.border = '';
             }
+            
+            // Validasi pertanyaan tidak kosong
+            if (!questionText.trim()) {
+                isValid = false;
+                block.querySelector('.question-text').style.border = '1px solid red';
+            } else {
+                block.querySelector('.question-text').style.border = '';
+            }
+            
+            // Validasi opsi tidak kosong
+            options.forEach((option, index) => {
+                if (!option.trim()) {
+                    isValid = false;
+                    block.querySelectorAll('.option')[index].style.border = '1px solid red';
+                } else {
+                    block.querySelectorAll('.option')[index].style.border = '';
+                }
+            });
+            
             questions.push({
-                text: block.querySelector('.question-text').value,
+                text: questionText,
                 image: block.querySelector('.question-image').value,
                 timer: parseInt(block.querySelector('.question-timer').value, 10) || 30,
-                options: Array.from(block.querySelectorAll('.option')).map(opt => opt.value),
+                options: options,
                 answer: parseInt(answer)
             });
         });
 
         if (!isValid) {
-            showNotification('Pastikan semua field dan jawaban benar telah diisi.', 'error');
+            if (!hasAnswerSelected) {
+                showNotification('Pastikan memilih jawaban benar untuk setiap pertanyaan!', 'error');
+            } else {
+                showNotification('Pastikan semua field telah diisi dengan benar!', 'error');
+            }
             return;
         }
 
+        // Generate kode quiz
         let quizCode = customCode ? customCode.toUpperCase() : `QM${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
+        // Cek kode duplikat
         if (appData.quizzes.some(q => q.code === quizCode)) {
             showNotification('Kode quiz ini sudah digunakan. Coba kode lain.', 'error');
             return;
         }
 
+        // Buat quiz baru
         const newQuiz = { 
             title, 
             code: quizCode, 
@@ -595,16 +631,21 @@ document.addEventListener('DOMContentLoaded', () => {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
+        
         appData.quizzes.push(newQuiz);
         const success = await updateData();
+        
         if (success) {
             showNotification(`Quiz berhasil dibuat! Kode: ${newQuiz.code}`, 'success');
             
+            // Reset form
             createQuizForm.reset();
             questionsContainer.innerHTML = '';
             questionCounter = 0;
-            addQuestionField();
+            addQuestionField(); // Tambah pertanyaan pertama
             renderAdminPanel();
+        } else {
+            showNotification('Gagal menyimpan quiz!', 'error');
         }
     };
 
@@ -613,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const username = document.getElementById('admin-username').value;
         const password = document.getElementById('admin-password').value;
         if (username === 'admin' && password === 'quizmaster123') {
-            document.getElementById('admin-login-popup').style.display = 'none';
+            document.getElementById('admin-login-popup').classList.remove('active');
             showPage('admin-panel');
             renderAdminPanel();
         } else {
@@ -625,13 +666,27 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('start-btn').addEventListener('click', () => showPage('player-entry-page'));
     document.getElementById('back-to-landing-btn').addEventListener('click', () => showPage('landing-page'));
     document.getElementById('back-to-home-btn').addEventListener('click', () => showPage('landing-page'));
-    adminIcon.addEventListener('click', () => document.getElementById('admin-login-popup').style.display = 'flex');
-    document.querySelector('.close-btn').addEventListener('click', () => document.getElementById('admin-login-popup').style.display = 'none');
+    
+    adminIcon.addEventListener('click', () => {
+        document.getElementById('admin-login-popup').classList.add('active');
+    });
+    
+    document.querySelector('.close-btn').addEventListener('click', () => {
+        document.getElementById('admin-login-popup').classList.remove('active');
+    });
+    
     document.getElementById('admin-logout-btn').addEventListener('click', () => showPage('landing-page'));
-    document.getElementById('add-question-btn').addEventListener('click', () => addQuestionField());
+    
+    // PERBAIKAN: Event listener untuk tombol tambah pertanyaan
+    document.getElementById('add-question-btn').addEventListener('click', () => {
+        addQuestionField(questionsContainer, false);
+    });
     
     // Event listeners untuk edit quiz
-    editAddQuestionBtn.addEventListener('click', () => addEditQuestionField());
+    editAddQuestionBtn.addEventListener('click', () => {
+        addQuestionField(editQuestionsContainer, true);
+    });
+    
     closeEditModal.addEventListener('click', closeEditModalHandler);
     cancelEditBtn.addEventListener('click', closeEditModalHandler);
     editQuizForm.addEventListener('submit', handleEditQuiz);
@@ -654,7 +709,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const initializeApp = async () => {
         await fetchData();
         showPage('landing-page');
-        addQuestionField(); // Tambah pertanyaan pertama untuk form buat quiz
+        
+        // Reset dan inisialisasi counter pertanyaan
+        questionCounter = 0;
+        questionsContainer.innerHTML = '';
+        
+        // Tambah pertanyaan pertama
+        addQuestionField(questionsContainer, false);
     };
 
     initializeApp();
