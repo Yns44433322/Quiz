@@ -322,6 +322,21 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             quizListContainer.appendChild(quizItem);
         });
+
+        // Tambahkan event listeners untuk tombol edit dan delete
+        document.querySelectorAll('.edit-quiz-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const quizCode = e.target.dataset.code;
+                openEditQuizModal(quizCode);
+            });
+        });
+
+        document.querySelectorAll('.delete-quiz-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const quizCode = e.target.dataset.code;
+                deleteQuiz(quizCode);
+            });
+        });
     };
 
     // --- Handle Create Quiz ---
@@ -339,6 +354,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const questionBlocks = createQuizForm.querySelectorAll('.question-block');
         let allQuestionsValid = true;
 
+        // Reset semua border terlebih dahulu
+        questionBlocks.forEach(block => {
+            const questionTextInput = block.querySelector('.question-text');
+            const optionInputs = block.querySelectorAll('.option');
+            const answerSelector = block.querySelector('.correct-answer-selector');
+            
+            questionTextInput.style.border = '';
+            optionInputs.forEach(input => input.style.border = '');
+            answerSelector.style.border = '';
+        });
+
         for (const block of questionBlocks) {
             const questionTextInput = block.querySelector('.question-text');
             const optionInputs = block.querySelectorAll('.option');
@@ -349,20 +375,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const options = Array.from(optionInputs).map(opt => opt.value.trim());
             const answer = answerInput.value;
 
-            // Reset styles
-            [questionTextInput, ...optionInputs, answerSelector].forEach(el => el.style.border = '');
-            
             let currentQuestionValid = true;
+            
+            // Validasi teks pertanyaan
             if (!questionText) {
                 questionTextInput.style.border = '1px solid red';
                 currentQuestionValid = false;
             }
+            
+            // Validasi opsi jawaban
             options.forEach((opt, index) => {
                 if (!opt) {
                     optionInputs[index].style.border = '1px solid red';
                     currentQuestionValid = false;
                 }
             });
+            
+            // Validasi jawaban benar
             if (answer === '') {
                 answerSelector.style.border = '1px solid red';
                 currentQuestionValid = false;
@@ -370,6 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!currentQuestionValid) {
                 allQuestionsValid = false;
+                showNotification('Harap periksa kembali semua field yang ditandai dengan warna merah!', 'error');
             } else {
                 questions.push({
                     text: questionText,
@@ -382,7 +412,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!allQuestionsValid) {
-            showNotification('Pastikan semua field pertanyaan, opsi, dan jawaban benar telah diisi!', 'error');
+            return;
+        }
+
+        if (questions.length === 0) {
+            showNotification('Quiz harus memiliki minimal 1 pertanyaan!', 'error');
             return;
         }
 
@@ -393,7 +427,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const newQuiz = { title, code: quizCode, questions, createdAt: new Date().toISOString() };
+        const newQuiz = { 
+            title, 
+            code: quizCode, 
+            questions, 
+            createdAt: new Date().toISOString() 
+        };
         
         appData.quizzes.push(newQuiz);
         const success = await updateData();
@@ -410,23 +449,200 @@ document.addEventListener('DOMContentLoaded', () => {
             showNotification('Gagal menyimpan quiz ke server!', 'error');
         }
     };
-    
+
+    // --- Fungsi untuk Edit Quiz ---
+    const openEditQuizModal = async (quizCode) => {
+        const quiz = appData.quizzes.find(q => q.code === quizCode);
+        if (!quiz) {
+            showNotification('Quiz tidak ditemukan!', 'error');
+            return;
+        }
+
+        editingQuiz = quiz;
+        editQuizTitle.value = quiz.title;
+        editQuizCode.value = quiz.code;
+        
+        // Kosongkan container pertanyaan
+        editQuestionsContainer.innerHTML = '';
+        editQuestionCounter = 0;
+        
+        // Tambahkan pertanyaan yang sudah ada
+        quiz.questions.forEach(question => {
+            addQuestionField(editQuestionsContainer, true);
+            const lastQuestion = editQuestionsContainer.lastElementChild;
+            
+            // Isi data pertanyaan
+            lastQuestion.querySelector('.question-text').value = question.text;
+            lastQuestion.querySelector('.question-timer').value = question.timer;
+            lastQuestion.querySelector('.question-image').value = question.image || '';
+            
+            // Isi opsi jawaban
+            const optionInputs = lastQuestion.querySelectorAll('.option');
+            question.options.forEach((option, index) => {
+                if (optionInputs[index]) {
+                    optionInputs[index].value = option;
+                }
+            });
+            
+            // Set jawaban benar
+            const correctAnswerInput = lastQuestion.querySelector('.correct-answer-input');
+            correctAnswerInput.value = question.answer;
+            const answerButtons = lastQuestion.querySelectorAll('.answer-choice-btn');
+            answerButtons.forEach(btn => btn.classList.remove('selected'));
+            if (answerButtons[question.answer]) {
+                answerButtons[question.answer].classList.add('selected');
+            }
+        });
+        
+        editQuizModal.classList.add('active');
+    };
+
+    const handleEditQuiz = async (e) => {
+        e.preventDefault();
+        const title = editQuizTitle.value.trim();
+        
+        if (!title) {
+            showNotification('Judul Quiz tidak boleh kosong!', 'error');
+            return;
+        }
+
+        const questions = [];
+        const questionBlocks = editQuestionsContainer.querySelectorAll('.question-block');
+        let allQuestionsValid = true;
+
+        // Reset semua border terlebih dahulu
+        questionBlocks.forEach(block => {
+            const questionTextInput = block.querySelector('.question-text');
+            const optionInputs = block.querySelectorAll('.option');
+            const answerSelector = block.querySelector('.correct-answer-selector');
+            
+            questionTextInput.style.border = '';
+            optionInputs.forEach(input => input.style.border = '');
+            answerSelector.style.border = '';
+        });
+
+        for (const block of questionBlocks) {
+            const questionTextInput = block.querySelector('.question-text');
+            const optionInputs = block.querySelectorAll('.option');
+            const answerInput = block.querySelector('.correct-answer-input');
+            const answerSelector = answerInput.closest('.correct-answer-selector');
+
+            const questionText = questionTextInput.value.trim();
+            const options = Array.from(optionInputs).map(opt => opt.value.trim());
+            const answer = answerInput.value;
+
+            let currentQuestionValid = true;
+            
+            // Validasi teks pertanyaan
+            if (!questionText) {
+                questionTextInput.style.border = '1px solid red';
+                currentQuestionValid = false;
+            }
+            
+            // Validasi opsi jawaban
+            options.forEach((opt, index) => {
+                if (!opt) {
+                    optionInputs[index].style.border = '1px solid red';
+                    currentQuestionValid = false;
+                }
+            });
+            
+            // Validasi jawaban benar
+            if (answer === '') {
+                answerSelector.style.border = '1px solid red';
+                currentQuestionValid = false;
+            }
+
+            if (!currentQuestionValid) {
+                allQuestionsValid = false;
+                showNotification('Harap periksa kembali semua field yang ditandai dengan warna merah!', 'error');
+            } else {
+                questions.push({
+                    text: questionText,
+                    image: block.querySelector('.question-image').value.trim(),
+                    timer: parseInt(block.querySelector('.question-timer').value, 10) || 30,
+                    options: options,
+                    answer: parseInt(answer)
+                });
+            }
+        }
+
+        if (!allQuestionsValid) {
+            return;
+        }
+
+        if (questions.length === 0) {
+            showNotification('Quiz harus memiliki minimal 1 pertanyaan!', 'error');
+            return;
+        }
+
+        // Update quiz yang sedang diedit
+        editingQuiz.title = title;
+        editingQuiz.questions = questions;
+
+        const success = await updateData();
+        
+        if (success) {
+            showNotification(`Quiz berhasil diperbarui!`, 'success');
+            editQuizModal.classList.remove('active');
+            renderAdminPanel();
+        } else {
+            showNotification('Gagal menyimpan perubahan quiz!', 'error');
+        }
+    };
+
+    // --- Fungsi untuk Hapus Quiz ---
+    const deleteQuiz = async (quizCode) => {
+        const confirmed = await showCustomConfirm(`Apakah Anda yakin ingin menghapus quiz dengan kode ${quizCode}?`);
+        if (!confirmed) return;
+
+        const quizIndex = appData.quizzes.findIndex(q => q.code === quizCode);
+        if (quizIndex === -1) {
+            showNotification('Quiz tidak ditemukan!', 'error');
+            return;
+        }
+
+        // Hapus quiz
+        appData.quizzes.splice(quizIndex, 1);
+        
+        // Hapus juga hasil yang terkait dengan quiz ini
+        appData.results = appData.results.filter(r => r.quizCode !== quizCode);
+
+        const success = await updateData();
+        
+        if (success) {
+            showNotification('Quiz berhasil dihapus!', 'success');
+            renderAdminPanel();
+        } else {
+            showNotification('Gagal menghapus quiz!', 'error');
+        }
+    };
+
     // --- Event Listeners Setup ---
     const setupEventListeners = () => {
+        // Navigation
         document.getElementById('start-btn').addEventListener('click', () => showPage('player-entry-page'));
         document.getElementById('back-to-landing-btn').addEventListener('click', () => showPage('landing-page'));
         document.getElementById('back-to-home-btn').addEventListener('click', () => showPage('landing-page'));
+        
+        // Admin
         adminIcon.addEventListener('click', () => document.getElementById('admin-login-popup').classList.add('active'));
         document.querySelector('#admin-login-popup .close-btn').addEventListener('click', () => document.getElementById('admin-login-popup').classList.remove('active'));
         document.getElementById('admin-logout-btn').addEventListener('click', () => showPage('landing-page'));
+        
+        // Quiz Creation
         document.getElementById('add-question-btn').addEventListener('click', () => addQuestionField(questionsContainer, false));
         
+        // Forms
         playerForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const username = usernameInput.value.trim();
             const quizCode = quizCodeInput.value.trim().toUpperCase();
-            if (username && quizCode) startQuiz(quizCode, username);
-            else showNotification('Username dan kode quiz tidak boleh kosong.', 'error');
+            if (username && quizCode) {
+                startQuiz(quizCode, username);
+            } else {
+                showNotification('Username dan kode quiz tidak boleh kosong.', 'error');
+            }
         });
 
         adminLoginForm.addEventListener('submit', (e) => {
@@ -443,6 +659,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         createQuizForm.addEventListener('submit', handleCreateQuiz);
+
+        // Edit Quiz Modal
+        closeEditModal.addEventListener('click', () => editQuizModal.classList.remove('active'));
+        cancelEditBtn.addEventListener('click', () => editQuizModal.classList.remove('active'));
+        editAddQuestionBtn.addEventListener('click', () => addQuestionField(editQuestionsContainer, true));
+        editQuizForm.addEventListener('submit', handleEditQuiz);
     };
 
     // --- Initialization ---
