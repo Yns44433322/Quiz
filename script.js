@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentQuiz = null;
     let currentQuestionIndex = 0;
     let totalPoints = 0;
-    let questionCounter = 0; // Counter untuk pertanyaan di form buat quiz
+    let questionCounter = 0;
     let questionTimer;
     let editingQuiz = null;
     let editQuestionCounter = 0;
@@ -233,14 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Fungsi untuk Menambah Pertanyaan ---
     const addQuestionField = (container = questionsContainer, isEditMode = false) => {
-        let counter;
-        if (isEditMode) {
-            editQuestionCounter++;
-            counter = editQuestionCounter;
-        } else {
-            questionCounter++;
-            counter = questionCounter;
-        }
+        let counter = isEditMode ? ++editQuestionCounter : ++questionCounter;
         
         const div = document.createElement('div');
         div.classList.add('question-block');
@@ -280,182 +273,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         div.querySelector('.answer-choice-container').addEventListener('click', (e) => {
             if (e.target.matches('.answer-choice-btn')) {
-                const container = e.target.parentElement;
-                container.querySelectorAll('.answer-choice-btn').forEach(btn => {
-                    btn.classList.remove('selected');
-                });
+                const parent = e.target.parentElement;
+                parent.querySelectorAll('.answer-choice-btn').forEach(btn => btn.classList.remove('selected'));
                 e.target.classList.add('selected');
-                const hiddenInput = container.closest('.question-block').querySelector('.correct-answer-input');
-                hiddenInput.value = e.target.dataset.value;
+                parent.closest('.question-block').querySelector('.correct-answer-input').value = e.target.dataset.value;
             }
         });
     };
 
-    const reorderQuestionNumbers = (container = questionsContainer, isEditMode = false) => {
+    const reorderQuestionNumbers = (container, isEditMode) => {
         const questionBlocks = container.querySelectorAll('.question-block');
         questionBlocks.forEach((block, index) => {
             block.querySelector('h5').textContent = `Pertanyaan ${index + 1}`;
         });
-        
         if (isEditMode) {
             editQuestionCounter = questionBlocks.length;
         } else {
             questionCounter = questionBlocks.length;
-        }
-    };
-
-    // --- Fungsi untuk Edit Quiz ---
-    const openEditQuizModal = (quizCode) => {
-        editingQuiz = appData.quizzes.find(q => q.code === quizCode);
-        if (!editingQuiz) {
-            showNotification('Quiz tidak ditemukan!', 'error');
-            return;
-        }
-
-        editQuizTitle.value = editingQuiz.title;
-        editQuizCode.value = editingQuiz.code;
-        
-        editQuestionsContainer.innerHTML = '';
-        editQuestionCounter = 0;
-        
-        editingQuiz.questions.forEach(question => {
-            addEditQuestionField(question);
-        });
-        
-        editQuizModal.classList.add('active');
-    };
-
-    const addEditQuestionField = (questionData = null) => {
-        editQuestionCounter++;
-        const div = document.createElement('div');
-        div.classList.add('question-block');
-        
-        const escapeHTML = (str) => {
-            if (!str) return '';
-            return str
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        };
-        
-        div.innerHTML = `
-            <div class="question-header">
-                <h5>Pertanyaan ${editQuestionCounter}</h5>
-                <button type="button" class="delete-question-btn">Hapus</button>
-            </div>
-            <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" 
-                   value="${questionData ? escapeHTML(questionData.text) : ''}" required>
-            <input type="number" class="input-field question-timer" placeholder="Waktu (detik), cth: 30" 
-                   value="${questionData ? questionData.timer : 30}" required>
-            <input type="url" class="input-field question-image" placeholder="URL Gambar (Opsional)"
-                   value="${questionData ? escapeHTML(questionData.image || '') : ''}">
-            <input type="text" class="input-field option" placeholder="Opsi 1" 
-                   value="${questionData ? escapeHTML(questionData.options[0] || '') : ''}" required>
-            <input type="text" class="input-field option" placeholder="Opsi 2" 
-                   value="${questionData ? escapeHTML(questionData.options[1] || '') : ''}" required>
-            <input type="text" class="input-field option" placeholder="Opsi 3" 
-                   value="${questionData ? escapeHTML(questionData.options[2] || '') : ''}" required>
-            <input type="text" class="input-field option" placeholder="Opsi 4" 
-                   value="${questionData ? escapeHTML(questionData.options[3] || '') : ''}" required>
-            <div class="correct-answer-selector">
-                <div class="form-label">Jawaban Benar:</div>
-                <div class="answer-choice-container">
-                    <button type="button" class="answer-choice-btn" data-value="0">Opsi 1</button>
-                    <button type="button" class="answer-choice-btn" data-value="1">Opsi 2</button>
-                    <button type="button" class="answer-choice-btn" data-value="2">Opsi 3</button>
-                    <button type="button" class="answer-choice-btn" data-value="3">Opsi 4</button>
-                </div>
-            </div>
-            <input type="hidden" class="correct-answer-input" value="${questionData ? questionData.answer : ''}">
-        `;
-        editQuestionsContainer.appendChild(div);
-
-        if (questionData && questionData.answer !== undefined) {
-            const answerButtons = div.querySelectorAll('.answer-choice-btn');
-            answerButtons.forEach((btn, index) => {
-                if (index === questionData.answer) {
-                    btn.classList.add('selected');
-                }
-            });
-        }
-
-        div.querySelector('.delete-question-btn').addEventListener('click', function() {
-            if (editQuestionsContainer.children.length > 1) {
-                this.closest('.question-block').remove();
-                reorderQuestionNumbers(editQuestionsContainer, true);
-            } else {
-                showNotification('Quiz harus memiliki minimal 1 pertanyaan!', 'error');
-            }
-        });
-
-        div.querySelector('.answer-choice-container').addEventListener('click', (e) => {
-            if (e.target.matches('.answer-choice-btn')) {
-                const container = e.target.parentElement;
-                container.querySelectorAll('.answer-choice-btn').forEach(btn => btn.classList.remove('selected'));
-                e.target.classList.add('selected');
-                const hiddenInput = container.closest('.question-block').querySelector('.correct-answer-input');
-                hiddenInput.value = e.target.dataset.value;
-            }
-        });
-    };
-
-    const closeEditModalHandler = () => {
-        editQuizModal.classList.remove('active');
-        editingQuiz = null;
-        editQuestionsContainer.innerHTML = '';
-        editQuestionCounter = 0;
-    };
-
-    const handleEditQuiz = async (e) => {
-        e.preventDefault();
-        
-        const title = editQuizTitle.value;
-        const questions = [];
-        const questionBlocks = editQuestionsContainer.querySelectorAll('.question-block');
-        
-        let isValid = true;
-        questionBlocks.forEach(block => {
-            const answer = block.querySelector('.correct-answer-input').value;
-            if (answer === "") {
-                isValid = false;
-                block.querySelector('.correct-answer-selector').style.border = '1px solid red';
-            } else {
-                block.querySelector('.correct-answer-selector').style.border = '';
-            }
-            questions.push({
-                text: block.querySelector('.question-text').value,
-                image: block.querySelector('.question-image').value,
-                timer: parseInt(block.querySelector('.question-timer').value, 10) || 30,
-                options: Array.from(block.querySelectorAll('.option')).map(opt => opt.value),
-                answer: parseInt(answer)
-            });
-        });
-
-        if (!isValid) {
-            showNotification('Pastikan semua field dan jawaban benar telah diisi.', 'error');
-            return;
-        }
-
-        const updatedQuiz = { 
-            ...editingQuiz, 
-            title, 
-            questions,
-            updatedAt: new Date().toISOString()
-        };
-
-        const index = appData.quizzes.findIndex(q => q.code === editingQuiz.code);
-        if (index !== -1) {
-            appData.quizzes[index] = updatedQuiz;
-            const success = await updateData();
-            if (success) {
-                showNotification(`Quiz "${title}" berhasil diperbarui!`, 'success');
-                closeEditModalHandler();
-                renderAdminPanel();
-            }
-        } else {
-            showNotification('Gagal memperbarui quiz!', 'error');
         }
     };
 
@@ -488,69 +322,9 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             quizListContainer.appendChild(quizItem);
         });
-            
-        document.querySelectorAll('.delete-quiz-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const quizCode = e.target.getAttribute('data-code');
-                const confirmed = await showCustomConfirm(`Anda yakin ingin menghapus quiz dengan kode ${quizCode}? Tindakan ini tidak dapat dibatalkan.`);
-                if (confirmed) {
-                    appData.quizzes = appData.quizzes.filter(q => q.code !== quizCode);
-                    appData.results = appData.results.filter(r => r.quizCode !== quizCode);
-                    await updateData();
-                    renderAdminPanel();
-                    renderGlobalLeaderboard();
-                    showNotification(`Quiz ${quizCode} berhasil dihapus.`, 'success');
-                }
-            });
-        });
-
-        document.querySelectorAll('.edit-quiz-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const quizCode = e.target.getAttribute('data-code');
-                openEditQuizModal(quizCode);
-            });
-        });
-
-        renderGlobalLeaderboard();
     };
 
-    const renderGlobalLeaderboard = () => {
-        const leaderboardContainer = document.getElementById('global-leaderboard');
-        if (!appData.results || appData.results.length === 0) {
-            leaderboardContainer.innerHTML = '<p>Belum ada hasil kuis.</p>';
-            return;
-        }
-        
-        const userPoints = {};
-        appData.results.forEach(result => {
-            if (!userPoints[result.username]) {
-                userPoints[result.username] = { totalPoints: 0, quizCount: 0 };
-            }
-            userPoints[result.username].totalPoints += result.points;
-            userPoints[result.username].quizCount++;
-        });
-        
-        const leaderboard = Object.entries(userPoints).map(([username, data]) => ({
-            username,
-            totalPoints: data.totalPoints,
-            quizCount: data.quizCount
-        }));
-        
-        leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
-        
-        leaderboardContainer.innerHTML = leaderboard.slice(0, 10).map((user, index) => `
-            <div class="leaderboard-item">
-                <div class="leaderboard-rank">#${index + 1}</div>
-                <div class="leaderboard-user">
-                    <strong>${user.username}</strong>
-                    <div style="font-size: 0.8rem; opacity: 0.8;">${user.quizCount} kuis</div>
-                </div>
-                <div class="leaderboard-score">${user.totalPoints} Poin</div>
-            </div>
-        `).join('');
-    };
-
-    // --- Handle Create Quiz (YANG DIPERBAIKI) ---
+    // --- Handle Create Quiz ---
     const handleCreateQuiz = async (e) => {
         e.preventDefault();
         const title = document.getElementById('new-quiz-title').value.trim();
@@ -563,23 +337,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const questions = [];
         const questionBlocks = createQuizForm.querySelectorAll('.question-block');
-        
         let allQuestionsValid = true;
 
         for (const block of questionBlocks) {
             const questionTextInput = block.querySelector('.question-text');
             const optionInputs = block.querySelectorAll('.option');
             const answerInput = block.querySelector('.correct-answer-input');
+            const answerSelector = answerInput.closest('.correct-answer-selector');
 
             const questionText = questionTextInput.value.trim();
             const options = Array.from(optionInputs).map(opt => opt.value.trim());
             const answer = answerInput.value;
 
             // Reset styles
-            questionTextInput.style.border = '';
-            optionInputs.forEach(opt => opt.style.border = '');
-            answerInput.closest('.correct-answer-selector').style.border = '';
-
+            [questionTextInput, ...optionInputs, answerSelector].forEach(el => el.style.border = '');
+            
             let currentQuestionValid = true;
             if (!questionText) {
                 questionTextInput.style.border = '1px solid red';
@@ -592,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             if (answer === '') {
-                answerInput.closest('.correct-answer-selector').style.border = '1px solid red';
+                answerSelector.style.border = '1px solid red';
                 currentQuestionValid = false;
             }
 
@@ -601,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 questions.push({
                     text: questionText,
-                    image: block.querySelector('.question-image').value,
+                    image: block.querySelector('.question-image').value.trim(),
                     timer: parseInt(block.querySelector('.question-timer').value, 10) || 30,
                     options: options,
                     answer: parseInt(answer)
@@ -614,20 +386,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let quizCode = customCode ? customCode.toUpperCase() : `QM${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        let quizCode = customCode.toUpperCase() || `QM${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
         if (appData.quizzes.some(q => q.code === quizCode)) {
             showNotification('Kode quiz ini sudah digunakan. Coba kode lain.', 'error');
             return;
         }
 
-        const newQuiz = { 
-            title, 
-            code: quizCode, 
-            questions, 
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
+        const newQuiz = { title, code: quizCode, questions, createdAt: new Date().toISOString() };
         
         appData.quizzes.push(newQuiz);
         const success = await updateData();
@@ -640,74 +406,53 @@ document.addEventListener('DOMContentLoaded', () => {
             addQuestionField();
             renderAdminPanel();
         } else {
-            appData.quizzes.pop(); // Hapus kuis yang gagal disimpan dari state lokal
+            appData.quizzes.pop();
             showNotification('Gagal menyimpan quiz ke server!', 'error');
         }
     };
+    
+    // --- Event Listeners Setup ---
+    const setupEventListeners = () => {
+        document.getElementById('start-btn').addEventListener('click', () => showPage('player-entry-page'));
+        document.getElementById('back-to-landing-btn').addEventListener('click', () => showPage('landing-page'));
+        document.getElementById('back-to-home-btn').addEventListener('click', () => showPage('landing-page'));
+        adminIcon.addEventListener('click', () => document.getElementById('admin-login-popup').classList.add('active'));
+        document.querySelector('#admin-login-popup .close-btn').addEventListener('click', () => document.getElementById('admin-login-popup').classList.remove('active'));
+        document.getElementById('admin-logout-btn').addEventListener('click', () => showPage('landing-page'));
+        document.getElementById('add-question-btn').addEventListener('click', () => addQuestionField(questionsContainer, false));
+        
+        playerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = usernameInput.value.trim();
+            const quizCode = quizCodeInput.value.trim().toUpperCase();
+            if (username && quizCode) startQuiz(quizCode, username);
+            else showNotification('Username dan kode quiz tidak boleh kosong.', 'error');
+        });
 
-    const handleAdminLogin = (e) => {
-        e.preventDefault();
-        const username = document.getElementById('admin-username').value;
-        const password = document.getElementById('admin-password').value;
-        if (username === 'admin' && password === 'quizmaster123') {
-            document.getElementById('admin-login-popup').classList.remove('active');
-            showPage('admin-panel');
-            renderAdminPanel();
-        } else {
-            showNotification('Username atau Password salah!', 'error');
-        }
+        adminLoginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+            if (username === 'admin' && password === 'quizmaster123') {
+                document.getElementById('admin-login-popup').classList.remove('active');
+                showPage('admin-panel');
+                renderAdminPanel();
+            } else {
+                showNotification('Username atau Password salah!', 'error');
+            }
+        });
+        
+        createQuizForm.addEventListener('submit', handleCreateQuiz);
     };
-
-    // --- Event Listeners ---
-    document.getElementById('start-btn').addEventListener('click', () => showPage('player-entry-page'));
-    document.getElementById('back-to-landing-btn').addEventListener('click', () => showPage('landing-page'));
-    document.getElementById('back-to-home-btn').addEventListener('click', () => showPage('landing-page'));
-    
-    adminIcon.addEventListener('click', () => {
-        document.getElementById('admin-login-popup').classList.add('active');
-    });
-    
-    document.querySelector('#admin-login-popup .close-btn').addEventListener('click', () => {
-        document.getElementById('admin-login-popup').classList.remove('active');
-    });
-    
-    document.getElementById('admin-logout-btn').addEventListener('click', () => showPage('landing-page'));
-    
-    document.getElementById('add-question-btn').addEventListener('click', () => {
-        addQuestionField(questionsContainer, false);
-    });
-    
-    editAddQuestionBtn.addEventListener('click', () => {
-        addQuestionField(editQuestionsContainer, true);
-    });
-    
-    closeEditModal.addEventListener('click', closeEditModalHandler);
-    cancelEditBtn.addEventListener('click', closeEditModalHandler);
-    editQuizForm.addEventListener('submit', handleEditQuiz);
-    
-    playerForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = usernameInput.value.trim();
-        const quizCode = quizCodeInput.value.trim().toUpperCase();
-        if (username && quizCode) {
-            startQuiz(quizCode, username);
-        } else {
-            showNotification('Username dan kode quiz tidak boleh kosong.', 'error');
-        }
-    });
-
-    adminLoginForm.addEventListener('submit', handleAdminLogin);
-    createQuizForm.addEventListener('submit', handleCreateQuiz);
 
     // --- Initialization ---
     const initializeApp = async () => {
+        setupEventListeners();
         await fetchData();
         showPage('landing-page');
-        
         questionCounter = 0;
         questionsContainer.innerHTML = '';
-        
-        addQuestionField(questionsContainer, false);
+        addQuestionField();
     };
 
     initializeApp();
