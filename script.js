@@ -11,6 +11,14 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentQuestionIndex = 0;
     let userScore = 0;
     let questionTimer = null;
+    let questionStartTime = 0;
+    
+    // Sistem lencana
+    let currentStreak = 0;
+    let hasStreakBadge = false;
+    let hasSpeedBadge = false;
+    let badgesEarned = [];
+    let badgeChallengeQuestions = [];
 
     // DOM Elements
     const elements = {
@@ -22,7 +30,12 @@ document.addEventListener('DOMContentLoaded', function() {
         createQuizForm: document.getElementById('create-quiz-form'),
         questionsContainer: document.getElementById('questions-container'),
         quizListContainer: document.getElementById('quiz-list'),
-        addQuestionBtn: document.getElementById('add-question-btn')
+        addQuestionBtn: document.getElementById('add-question-btn'),
+        showLeaderboardBtn: document.getElementById('show-leaderboard-btn'),
+        backToAdminBtn: document.getElementById('back-to-admin-btn'),
+        globalLeaderboard: document.getElementById('global-leaderboard'),
+        quizFilter: document.getElementById('quiz-filter'),
+        timeFilter: document.getElementById('time-filter')
     };
 
     // ==================== FUNGSI UTILITAS ====================
@@ -52,8 +65,15 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById(pageId).classList.add('active');
         
         // Sembunyikan admin icon di halaman tertentu
-        const hideAdminIcon = ['quiz-page', 'score-page', 'admin-panel'].includes(pageId);
+        const hideAdminIcon = ['quiz-page', 'score-page', 'admin-panel', 'leaderboard-page', 'badge-challenge-page'].includes(pageId);
         elements.adminIcon.style.display = hideAdminIcon ? 'none' : 'flex';
+    }
+
+    // Format waktu
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
 
     // ==================== FUNGSI DATA STORAGE ====================
@@ -83,7 +103,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return { quizzes: [], results: [] };
     }
 
+    // Fungsi untuk mendapatkan konfigurasi API (disembunyikan)
     function getApiConfig() {
+        // Data yang diacak dan dipisah
         const part1 = '68f4fb0d';
         const part2 = '43b1c97be971204d';
         const part3 = '$2a$10$pGIBtyGF2MLAh5h1WMv9M';
@@ -221,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return serverSuccess;
     }
 
-    // ==================== FUNGSI QUIZ ====================
+    // ==================== FUNGSI QUIZ & SISTEM POINT ====================
 
     // Mulai quiz
     function startQuiz(quizCode, username) {
@@ -234,6 +256,14 @@ document.addEventListener('DOMContentLoaded', function() {
         currentQuiz = quiz;
         currentQuestionIndex = 0;
         userScore = 0;
+        currentStreak = 0;
+        hasStreakBadge = false;
+        hasSpeedBadge = false;
+        badgesEarned = [];
+
+        // Reset badge display
+        document.getElementById('streak-badge').style.display = 'none';
+        document.getElementById('speed-badge').style.display = 'none';
 
         document.getElementById('quiz-title-display').textContent = quiz.title;
         showPage('quiz-page');
@@ -267,12 +297,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Timer
         let timeLeft = question.timer || 30;
         const timerDisplay = document.getElementById('timer-display');
-        timerDisplay.textContent = `00:${timeLeft.toString().padStart(2, '0')}`;
+        timerDisplay.textContent = formatTime(timeLeft);
+        
+        // Catat waktu mulai
+        questionStartTime = Date.now();
         
         if (questionTimer) clearInterval(questionTimer);
         questionTimer = setInterval(() => {
             timeLeft--;
-            timerDisplay.textContent = `00:${timeLeft.toString().padStart(2, '0')}`;
+            timerDisplay.textContent = formatTime(timeLeft);
             
             if (timeLeft <= 0) {
                 clearInterval(questionTimer);
@@ -301,6 +334,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const correctIndex = question.answer;
         const options = document.querySelectorAll('.option-btn');
 
+        // Hitung waktu yang digunakan
+        const timeUsed = Math.floor((Date.now() - questionStartTime) / 1000);
+        const timeLimit = question.timer || 30;
+        
         // Nonaktifkan semua tombol
         options.forEach(btn => {
             btn.disabled = true;
@@ -312,19 +349,167 @@ document.addEventListener('DOMContentLoaded', function() {
             if (selectedIndex !== -1) {
                 options[selectedIndex].classList.add('correct');
             }
-            userScore += 100;
+            
+            // Hitung point berdasarkan waktu
+            let pointsEarned = 0;
+            if (timeUsed < timeLimit) {
+                // Sistem point baru: lebih cepat = lebih banyak point
+                const basePoints = 100;
+                const timeBonus = Math.max(0, timeLimit - timeUsed) * 2; // Bonus 2 point per detik tersisa
+                pointsEarned = basePoints + timeBonus;
+                
+                // Cek untuk speed badge (jawab dalam 1 detik)
+                if (timeUsed <= 1 && currentStreak >= 4) { // Sudah 5x beruntun termasuk yang ini
+                    if (!hasSpeedBadge) {
+                        hasSpeedBadge = true;
+                        badgesEarned.push('speed');
+                        document.getElementById('speed-badge').style.display = 'flex';
+                        showNotification('🎉 Lencana Speed Unlocked! Point akan dikali 2x!', 'success');
+                    }
+                }
+                
+                // Apply speed badge multiplier
+                if (hasSpeedBadge) {
+                    pointsEarned *= 2;
+                }
+                
+                userScore += Math.round(pointsEarned);
+                
+                // Update streak
+                currentStreak++;
+                
+                // Cek untuk streak badge
+                if (currentStreak >= 5 && !hasStreakBadge) {
+                    hasStreakBadge = true;
+                    badgesEarned.push('streak');
+                    document.getElementById('streak-badge').style.display = 'flex';
+                    showNotification('🎉 Lencana Streak Unlocked! Dapatkan tantangan bonus!', 'success');
+                    
+                    // Siapkan tantangan lencana
+                    prepareBadgeChallenge();
+                }
+            }
         } else {
             if (selectedIndex !== -1) {
                 options[selectedIndex].classList.add('incorrect');
             }
             options[correctIndex].classList.add('correct');
+            
+            // Reset streak jika salah
+            currentStreak = 0;
         }
 
         // Lanjut ke pertanyaan berikutnya setelah 2 detik
         setTimeout(() => {
-            currentQuestionIndex++;
-            showQuestion();
+            // Jika punya streak badge dan ini adalah pertanyaan ke-5 dalam streak
+            if (hasStreakBadge && currentStreak % 5 === 0 && badgeChallengeQuestions.length > 0) {
+                showBadgeChallenge();
+            } else {
+                currentQuestionIndex++;
+                showQuestion();
+            }
         }, 2000);
+    }
+
+    // Siapkan tantangan lencana
+    function prepareBadgeChallenge() {
+        badgeChallengeQuestions = [];
+        
+        // Ambil 3 pertanyaan acak dari quiz yang salah dijawab oleh user
+        const wrongQuestions = [];
+        
+        // Untuk demo, kita buat beberapa pertanyaan challenge
+        const challengeQuestions = [
+            {
+                text: "Manakah jawaban yang SALAH tentang JavaScript?",
+                options: [
+                    "JavaScript adalah bahasa single-threaded",
+                    "JavaScript bisa berjalan di browser dan server",
+                    "JavaScript memiliki tipe data integer dan float terpisah", // Ini salah
+                    "JavaScript mendukung pemrograman berorientasi objek"
+                ],
+                correctIndex: 2
+            },
+            {
+                text: "Manakah yang BUKAN framework JavaScript?",
+                options: [
+                    "React",
+                    "Vue",
+                    "Angular", 
+                    "Django" // Ini salah (Django adalah Python)
+                ],
+                correctIndex: 3
+            }
+        ];
+        
+        badgeChallengeQuestions = challengeQuestions.slice(0, Math.min(3, challengeQuestions.length));
+    }
+
+    // Tampilkan tantangan lencana
+    function showBadgeChallenge() {
+        const container = document.getElementById('badge-questions-container');
+        container.innerHTML = '';
+        
+        badgeChallengeQuestions.forEach((question, qIndex) => {
+            const questionHTML = `
+                <div class="question-block">
+                    <h5>Tantangan ${qIndex + 1}</h5>
+                    <p>${question.text}</p>
+                    <div class="answer-choice-container">
+                        ${question.options.map((option, index) => `
+                            <button type="button" class="answer-choice-btn" data-qindex="${qIndex}" data-index="${index}">${option}</button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            container.innerHTML += questionHTML;
+        });
+        
+        // Reset selected answers
+        badgeChallengeQuestions.forEach((_, index) => {
+            badgeChallengeQuestions[index].selectedAnswer = -1;
+        });
+        
+        // Add event listeners
+        container.querySelectorAll('.answer-choice-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const qIndex = parseInt(this.dataset.qindex);
+                const index = parseInt(this.dataset.index);
+                
+                // Remove selected from all buttons in this question
+                this.parentElement.querySelectorAll('.answer-choice-btn').forEach(b => {
+                    b.classList.remove('selected');
+                });
+                
+                // Add selected to clicked button
+                this.classList.add('selected');
+                badgeChallengeQuestions[qIndex].selectedAnswer = index;
+            });
+        });
+        
+        showPage('badge-challenge-page');
+    }
+
+    // Handle submit tantangan lencana
+    function handleBadgeChallengeSubmit() {
+        let correctCount = 0;
+        
+        badgeChallengeQuestions.forEach((question, index) => {
+            if (question.selectedAnswer === question.correctIndex) {
+                correctCount++;
+            }
+        });
+        
+        // Berikan point bonus berdasarkan jumlah yang benar
+        const bonusPoints = correctCount * 50; // 50 point per jawaban benar
+        userScore += bonusPoints;
+        
+        showNotification(`🎉 Berhasil memperbaiki ${correctCount} jawaban! +${bonusPoints} point bonus!`, 'success');
+        
+        // Lanjut ke pertanyaan berikutnya
+        currentQuestionIndex++;
+        showPage('quiz-page');
+        showQuestion();
     }
 
     // Selesaikan quiz
@@ -332,6 +517,20 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('final-score').textContent = userScore;
         document.getElementById('score-details').textContent = 
             `Kamu telah menyelesaikan kuis "${currentQuiz.title}" dengan baik!`;
+        
+        // Tampilkan lencana yang didapat
+        const badgesContainer = document.getElementById('badges-earned');
+        badgesContainer.innerHTML = '';
+        
+        if (badgesEarned.length > 0) {
+            badgesEarned.forEach(badge => {
+                const badgeElement = document.createElement('div');
+                badgeElement.className = 'badge-earned';
+                badgeElement.innerHTML = badge === 'streak' ? '🔥' : '⚡';
+                badgeElement.title = badge === 'streak' ? 'Lencana Streak' : 'Lencana Speed';
+                badgesContainer.appendChild(badgeElement);
+            });
+        }
         
         showPage('score-page');
 
@@ -341,6 +540,7 @@ document.addEventListener('DOMContentLoaded', function() {
             username: username,
             quizCode: currentQuiz.code,
             score: userScore,
+            badges: badgesEarned,
             timestamp: new Date().toISOString()
         };
         
@@ -583,35 +783,127 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Hapus quiz
+    // Hapus quiz (tanpa popup putih)
     async function deleteQuiz(quizCode) {
-        if (!confirm(`Apakah Anda yakin ingin menghapus quiz dengan kode ${quizCode}?`)) {
+        // Gunakan confirm bawaan browser
+        const quiz = appData.quizzes.find(q => q.code === quizCode);
+        if (!quiz) return;
+        
+        if (confirm(`Apakah Anda yakin ingin menghapus quiz "${quiz.title}" (${quizCode})?`)) {
+            const index = appData.quizzes.findIndex(q => q.code === quizCode);
+            if (index === -1) {
+                showNotification('Quiz tidak ditemukan!', 'error');
+                return;
+            }
+
+            // Hapus quiz
+            appData.quizzes.splice(index, 1);
+            
+            // Hapus hasil yang terkait
+            if (appData.results) {
+                appData.results = appData.results.filter(r => r.quizCode !== quizCode);
+            }
+
+            const success = await saveData();
+            
+            if (success) {
+                showNotification('Quiz berhasil dihapus!', 'success');
+                renderQuizList();
+            } else {
+                showNotification('Quiz berhasil dihapus dari penyimpanan lokal!', 'success');
+                renderQuizList();
+            }
+        }
+    }
+
+    // ==================== FUNGSI LEADERBOARD ====================
+
+    // Tampilkan leaderboard
+    function showLeaderboard() {
+        renderLeaderboard();
+        showPage('leaderboard-page');
+    }
+
+    // Render leaderboard
+    function renderLeaderboard() {
+        const container = elements.globalLeaderboard;
+        
+        if (!appData.results || appData.results.length === 0) {
+            container.innerHTML = '<p>Belum ada data leaderboard.</p>';
             return;
         }
 
-        const index = appData.quizzes.findIndex(q => q.code === quizCode);
-        if (index === -1) {
-            showNotification('Quiz tidak ditemukan!', 'error');
+        // Filter results berdasarkan quiz dan waktu
+        let filteredResults = [...appData.results];
+        const quizFilter = elements.quizFilter.value;
+        const timeFilter = elements.timeFilter.value;
+
+        // Filter berdasarkan quiz
+        if (quizFilter) {
+            filteredResults = filteredResults.filter(result => result.quizCode === quizFilter);
+        }
+
+        // Filter berdasarkan waktu
+        const now = new Date();
+        if (timeFilter === 'week') {
+            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            filteredResults = filteredResults.filter(result => new Date(result.timestamp) >= oneWeekAgo);
+        } else if (timeFilter === 'month') {
+            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            filteredResults = filteredResults.filter(result => new Date(result.timestamp) >= oneMonthAgo);
+        }
+
+        // Urutkan berdasarkan score (tertinggi ke terendah)
+        filteredResults.sort((a, b) => b.score - a.score);
+
+        // Update filter quiz options
+        updateQuizFilterOptions();
+
+        // Render leaderboard items
+        container.innerHTML = '';
+        
+        if (filteredResults.length === 0) {
+            container.innerHTML = '<p>Tidak ada data untuk filter yang dipilih.</p>';
             return;
         }
 
-        // Hapus quiz
-        appData.quizzes.splice(index, 1);
-        
-        // Hapus hasil yang terkait
-        if (appData.results) {
-            appData.results = appData.results.filter(r => r.quizCode !== quizCode);
-        }
+        filteredResults.forEach((result, index) => {
+            const quiz = appData.quizzes.find(q => q.code === result.quizCode);
+            const quizName = quiz ? quiz.title : 'Quiz Tidak Ditemukan';
+            
+            const leaderboardItem = document.createElement('div');
+            leaderboardItem.className = 'leaderboard-item';
+            leaderboardItem.innerHTML = `
+                <div class="leaderboard-rank">#${index + 1}</div>
+                <div class="leaderboard-user">
+                    ${result.username}
+                    <div class="leaderboard-quiz">${quizName}</div>
+                </div>
+                <div class="leaderboard-score">${result.score} pts</div>
+            `;
+            
+            container.appendChild(leaderboardItem);
+        });
+    }
 
-        const success = await saveData();
+    // Update opsi filter quiz
+    function updateQuizFilterOptions() {
+        const quizFilter = elements.quizFilter;
+        const currentValue = quizFilter.value;
         
-        if (success) {
-            showNotification('Quiz berhasil dihapus!', 'success');
-            renderQuizList();
-        } else {
-            showNotification('Quiz berhasil dihapus dari penyimpanan lokal!', 'success');
-            renderQuizList();
+        quizFilter.innerHTML = '<option value="">Semua Quiz</option>';
+        
+        if (appData.quizzes && appData.quizzes.length > 0) {
+            appData.quizzes.forEach(quiz => {
+                const option = document.createElement('option');
+                option.value = quiz.code;
+                option.textContent = quiz.title;
+                quizFilter.appendChild(option);
+            });
         }
+        
+        // Kembalikan nilai yang dipilih sebelumnya
+        quizFilter.value = currentValue;
     }
 
     // ==================== EVENT LISTENER GLOBAL ====================
@@ -635,6 +927,15 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('admin-logout-btn').addEventListener('click', () => {
             showPage('landing-page');
         });
+        
+        // Leaderboard
+        elements.showLeaderboardBtn.addEventListener('click', showLeaderboard);
+        elements.backToAdminBtn.addEventListener('click', () => showPage('admin-panel'));
+        elements.quizFilter.addEventListener('change', renderLeaderboard);
+        elements.timeFilter.addEventListener('change', renderLeaderboard);
+        
+        // Badge challenge
+        document.getElementById('submit-badge-challenge').addEventListener('click', handleBadgeChallengeSubmit);
         
         // Forms
         elements.playerForm.addEventListener('submit', function(e) {
