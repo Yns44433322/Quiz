@@ -1,12 +1,10 @@
-// QUIZ MASTER - SCRIPT UTAMA
+// QUIZ MASTER - SCRIPT UTAMA YANG SUDAH DIPERBAIKI
 document.addEventListener('DOMContentLoaded', function() {
     console.log('QUIZ MASTER - Aplikasi dimulai');
     
-    // Konfigurasi API
+    // Konfigurasi API (tanpa master key di client side)
     const JSONBIN_CONFIG = {
         binId: '68e5a3d743b1c97be95e228b',
-        masterKey: '$2a$10$IvGjmmJFZX2ZQ6eoZ/42vOTL54rzpy83ya/pnesExdMWpKWV6MDGG',
-        accessKey: '$2a$10$T.eHULy6ck/GKr48zzsI2OKfuZA.KsVl.kwHHEoiJEEf/abmhaNZm',
         baseURL: 'https://api.jsonbin.io/v3/b'
     };
 
@@ -64,63 +62,115 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.adminIcon.style.display = hideAdminIcon ? 'none' : 'flex';
     }
 
-    // ==================== FUNGSI API ====================
+    // ==================== FUNGSI DATA STORAGE ====================
 
-    // Ambil data dari JSONBin
-    async function fetchData() {
-        showLoader(true);
+    // Simpan data ke localStorage (fallback)
+    function saveToLocalStorage(data) {
         try {
-            const response = await fetch(`${JSONBIN_CONFIG.baseURL}/${JSONBIN_CONFIG.binId}/latest`, {
-                headers: {
-                    'X-Master-Key': JSONBIN_CONFIG.masterKey,
-                    'X-Access-Key': JSONBIN_CONFIG.accessKey
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Gagal mengambil data');
-            }
-            
-            const data = await response.json();
-            appData = data.record || { quizzes: [], results: [] };
-            console.log('Data berhasil diambil:', appData);
+            localStorage.setItem('quizMasterData', JSON.stringify(data));
+            console.log('Data berhasil disimpan ke localStorage');
             return true;
         } catch (error) {
-            console.error('Error fetching data:', error);
-            showNotification('Gagal memuat data dari server', 'error');
+            console.error('Error saving to localStorage:', error);
             return false;
+        }
+    }
+
+    // Ambil data dari localStorage
+    function loadFromLocalStorage() {
+        try {
+            const data = localStorage.getItem('quizMasterData');
+            if (data) {
+                return JSON.parse(data);
+            }
+        } catch (error) {
+            console.error('Error loading from localStorage:', error);
+        }
+        return { quizzes: [], results: [] };
+    }
+
+    // Ambil data dari JSONBin (dengan fallback ke localStorage)
+    async function fetchData() {
+        showLoader(true);
+        
+        // Coba ambil dari localStorage dulu untuk loading cepat
+        const localData = loadFromLocalStorage();
+        if (localData.quizzes.length > 0 || localData.results.length > 0) {
+            appData = localData;
+            console.log('Data dimuat dari localStorage:', appData);
+            showLoader(false);
+        }
+
+        try {
+            // Coba ambil dari JSONBin
+            const response = await fetch(`${JSONBIN_CONFIG.baseURL}/${JSONBIN_CONFIG.binId}/latest`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                const serverData = data.record || { quizzes: [], results: [] };
+                
+                // Gabungkan data: prioritaskan data server, tapi simpan data lokal yang belum ada
+                if (serverData.quizzes.length > 0) {
+                    appData.quizzes = serverData.quizzes;
+                }
+                if (serverData.results.length > 0) {
+                    appData.results = serverData.results;
+                }
+                
+                console.log('Data berhasil diambil dari server:', appData);
+                showNotification('Data berhasil disinkronisasi dengan server', 'success');
+            } else {
+                console.warn('Tidak bisa mengakses server, menggunakan data lokal');
+                showNotification('Mode offline: menggunakan data lokal', 'info');
+            }
+        } catch (error) {
+            console.warn('Error fetching from server, using localStorage data:', error);
+            showNotification('Mode offline: menggunakan data lokal', 'info');
         } finally {
             showLoader(false);
         }
     }
 
-    // Simpan data ke JSONBin
+    // Simpan data ke JSONBin (dengan fallback ke localStorage)
     async function saveData() {
         showLoader(true);
+        let serverSuccess = false;
+
         try {
+            // Simpan ke localStorage terlebih dahulu (untuk keamanan)
+            saveToLocalStorage(appData);
+            
+            // Coba simpan ke JSONBin (tanpa API key untuk menghindari CORS)
             const response = await fetch(`${JSONBIN_CONFIG.baseURL}/${JSONBIN_CONFIG.binId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Master-Key': JSONBIN_CONFIG.masterKey,
-                    'X-Access-Key': JSONBIN_CONFIG.accessKey
                 },
                 body: JSON.stringify(appData)
             });
             
-            if (!response.ok) {
-                throw new Error('Gagal menyimpan data');
+            if (response.ok) {
+                serverSuccess = true;
+                console.log('Data berhasil disimpan ke server:', appData);
+                showNotification('Data berhasil disimpan ke server', 'success');
+            } else {
+                throw new Error('Server response not OK');
             }
-            
-            console.log('Data berhasil disimpan:', appData);
-            return true;
         } catch (error) {
-            console.error('Error saving data:', error);
-            showNotification('Gagal menyimpan data ke server', 'error');
-            return false;
+            console.warn('Gagal menyimpan ke server, menggunakan localStorage:', error);
+            
+            // Fallback: simpan ke localStorage
+            const localSuccess = saveToLocalStorage(appData);
+            if (localSuccess) {
+                showNotification('Data disimpan secara lokal (offline mode)', 'info');
+            } else {
+                showNotification('Gagal menyimpan data!', 'error');
+            }
         } finally {
             showLoader(false);
         }
+        
+        return serverSuccess;
     }
 
     // ==================== FUNGSI QUIZ ====================
@@ -328,6 +378,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const questionBlocks = elements.questionsContainer.querySelectorAll('.question-block');
         let isValid = true;
 
+        // Reset semua border error
+        questionBlocks.forEach(block => {
+            block.querySelector('.question-text').style.border = '';
+            block.querySelectorAll('.option').forEach(input => input.style.border = '');
+            block.querySelector('.correct-answer-selector').style.border = '';
+        });
+
         for (const block of questionBlocks) {
             const questionText = block.querySelector('.question-text').value.trim();
             const timer = parseInt(block.querySelector('.question-timer').value) || 30;
@@ -336,9 +393,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const correctAnswer = block.querySelector('.correct-answer').value;
 
             // Validasi
+            let questionValid = true;
+            
             if (!questionText) {
                 block.querySelector('.question-text').style.border = '1px solid red';
-                isValid = false;
+                questionValid = false;
             }
             
             const hasEmptyOption = options.some(opt => !opt);
@@ -346,15 +405,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 block.querySelectorAll('.option').forEach(input => {
                     if (!input.value.trim()) input.style.border = '1px solid red';
                 });
-                isValid = false;
+                questionValid = false;
             }
             
             if (correctAnswer === '') {
                 block.querySelector('.correct-answer-selector').style.border = '1px solid red';
-                isValid = false;
+                questionValid = false;
             }
 
-            if (isValid) {
+            if (!questionValid) {
+                isValid = false;
+                showNotification('Harap isi semua field yang diperlukan!', 'error');
+                break;
+            } else {
                 questions.push({
                     text: questionText,
                     timer: timer,
@@ -366,7 +429,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!isValid) {
-            showNotification('Harap isi semua field yang diperlukan!', 'error');
             return;
         }
 
@@ -434,8 +496,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="quiz-item-header">
                         <h4>${quiz.title} (Kode: ${quiz.code})</h4>
                         <div class="quiz-controls">
-                            <button class="btn edit-quiz-btn" data-code="${quiz.code}">Edit</button>
-                            <button class="btn btn-danger delete-quiz-btn" data-code="${quiz.code}">Hapus</button>
+                            <button class="btn edit-quiz-btn" data-code="${quiz.code}" type="button">Edit</button>
+                            <button class="btn btn-danger delete-quiz-btn" data-code="${quiz.code}" type="button">Hapus</button>
                         </div>
                     </div>
                     <details>
@@ -446,18 +508,6 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             
             container.insertAdjacentHTML('beforeend', quizHTML);
-        });
-
-        // Event delegation untuk tombol edit dan hapus
-        container.addEventListener('click', function(e) {
-            const quizCode = e.target.dataset.code;
-            
-            if (e.target.classList.contains('delete-quiz-btn')) {
-                deleteQuiz(quizCode);
-            } else if (e.target.classList.contains('edit-quiz-btn')) {
-                // Fungsi edit bisa ditambahkan nanti
-                showNotification('Fitur edit sedang dalam pengembangan', 'info');
-            }
         });
     }
 
@@ -489,10 +539,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ==================== INISIALISASI APLIKASI ====================
+    // ==================== EVENT LISTENER GLOBAL ====================
 
-    // Setup event listeners
-    function setupEventListeners() {
+    // Setup global event listeners (hanya sekali dipanggil)
+    function setupGlobalEventListeners() {
         // Navigasi
         document.getElementById('start-btn').addEventListener('click', () => showPage('player-entry-page'));
         document.getElementById('back-to-landing-btn').addEventListener('click', () => showPage('landing-page'));
@@ -541,13 +591,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Quiz creation
         elements.addQuestionBtn.addEventListener('click', () => addQuestionField());
         elements.createQuizForm.addEventListener('submit', handleCreateQuiz);
+
+        // Event delegation untuk quiz list (hanya sekali dipasang)
+        elements.quizListContainer.addEventListener('click', function(e) {
+            const quizCode = e.target.dataset.code;
+            
+            if (e.target.classList.contains('delete-quiz-btn')) {
+                deleteQuiz(quizCode);
+            } else if (e.target.classList.contains('edit-quiz-btn')) {
+                showNotification('Fitur edit sedang dalam pengembangan', 'info');
+            }
+        });
     }
+
+    // ==================== INISIALISASI APLIKASI ====================
 
     // Inisialisasi aplikasi
     async function initializeApp() {
         console.log('Menginisialisasi aplikasi...');
         
-        setupEventListeners();
+        setupGlobalEventListeners();
         
         // Load data
         await fetchData();
