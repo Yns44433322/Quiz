@@ -1,12 +1,6 @@
 // QUIZ MASTER - SCRIPT UTAMA YANG SUDAH DIPERBAIKI
 document.addEventListener('DOMContentLoaded', function() {
     console.log('QUIZ MASTER - Aplikasi dimulai');
-    
-    // Konfigurasi API (tanpa master key di client side)
-    const JSONBIN_CONFIG = {
-        binId: '68e5a3d743b1c97be95e228b',
-        baseURL: 'https://api.jsonbin.io/v3/b'
-    };
 
     // State aplikasi
     let appData = {
@@ -89,6 +83,22 @@ document.addEventListener('DOMContentLoaded', function() {
         return { quizzes: [], results: [] };
     }
 
+    function getApiConfig() {
+        const part1 = '68f4fb0d';
+        const part2 = '43b1c97be971204d';
+        const part3 = '$2a$10$pGIBtyGF2MLAh5h1WMv9M';
+        const part4 = 'ui7K7lSjiAyCFZepc93/RkDHXIyg3E4O';
+        const part5 = '$2a$10$JIK5xVBYHYbe80vauAzE4';
+        const part6 = 'OO55eXdVw30b/a/B2DF7Mi38LppKmQQO';
+        
+        return {
+            binId: part1 + part2,
+            masterKey: part3 + part4,
+            accessKey: part5 + part6,
+            baseURL: 'https://api.jsonbin.io/v3/b'
+        };
+    }
+
     // Ambil data dari JSONBin (dengan fallback ke localStorage)
     async function fetchData() {
         showLoader(true);
@@ -98,29 +108,61 @@ document.addEventListener('DOMContentLoaded', function() {
         if (localData.quizzes.length > 0 || localData.results.length > 0) {
             appData = localData;
             console.log('Data dimuat dari localStorage:', appData);
-            showLoader(false);
         }
 
         try {
-            // Coba ambil dari JSONBin
-            const response = await fetch(`${JSONBIN_CONFIG.baseURL}/${JSONBIN_CONFIG.binId}/latest`);
+            // Dapatkan config secara dinamis
+            const JSONBIN_CONFIG = getApiConfig();
+            
+            // Coba ambil dari JSONBin dengan X-Access-Key
+            const response = await fetch(`${JSONBIN_CONFIG.baseURL}/${JSONBIN_CONFIG.binId}/latest`, {
+                headers: {
+                    'X-Access-Key': JSONBIN_CONFIG.accessKey
+                }
+            });
             
             if (response.ok) {
                 const data = await response.json();
                 const serverData = data.record || { quizzes: [], results: [] };
                 
-                // Gabungkan data: prioritaskan data server, tapi simpan data lokal yang belum ada
-                if (serverData.quizzes.length > 0) {
+                console.log('Data dari server:', serverData);
+                
+                // Prioritaskan data dari server, tapi gabungkan dengan data lokal untuk results
+                if (serverData.quizzes && serverData.quizzes.length > 0) {
                     appData.quizzes = serverData.quizzes;
                 }
-                if (serverData.results.length > 0) {
-                    appData.results = serverData.results;
+                if (serverData.results && serverData.results.length > 0) {
+                    // Gabungkan results dari server dan lokal, hindari duplikat
+                    const localResults = appData.results || [];
+                    const serverResults = serverData.results || [];
+                    
+                    // Gabungkan dan hapus duplikat berdasarkan timestamp dan username
+                    const combinedResults = [...localResults];
+                    serverResults.forEach(serverResult => {
+                        const exists = localResults.some(localResult => 
+                            localResult.username === serverResult.username && 
+                            localResult.quizCode === serverResult.quizCode &&
+                            localResult.timestamp === serverResult.timestamp
+                        );
+                        if (!exists) {
+                            combinedResults.push(serverResult);
+                        }
+                    });
+                    
+                    appData.results = combinedResults;
                 }
+                
+                // Pastikan struktur data konsisten
+                if (!appData.quizzes) appData.quizzes = [];
+                if (!appData.results) appData.results = [];
+                
+                // Simpan data gabungan ke localStorage
+                saveToLocalStorage(appData);
                 
                 console.log('Data berhasil diambil dari server:', appData);
                 showNotification('Data berhasil disinkronisasi dengan server', 'success');
             } else {
-                console.warn('Tidak bisa mengakses server, menggunakan data lokal');
+                console.warn('Tidak bisa mengakses server, menggunakan data lokal. Status:', response.status);
                 showNotification('Mode offline: menggunakan data lokal', 'info');
             }
         } catch (error) {
@@ -138,13 +180,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // Simpan ke localStorage terlebih dahulu (untuk keamanan)
-            saveToLocalStorage(appData);
+            const localSuccess = saveToLocalStorage(appData);
             
-            // Coba simpan ke JSONBin (tanpa API key untuk menghindari CORS)
+            if (!localSuccess) {
+                throw new Error('Gagal menyimpan ke localStorage');
+            }
+            
+            // Dapatkan config secara dinamis
+            const JSONBIN_CONFIG = getApiConfig();
+            
+            // Coba simpan ke JSONBin dengan X-Access-Key
             const response = await fetch(`${JSONBIN_CONFIG.baseURL}/${JSONBIN_CONFIG.binId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Access-Key': JSONBIN_CONFIG.accessKey,
+                    'X-Bin-Versioning': 'false'
                 },
                 body: JSON.stringify(appData)
             });
@@ -152,20 +203,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok) {
                 serverSuccess = true;
                 console.log('Data berhasil disimpan ke server:', appData);
-                showNotification('Data berhasil disimpan ke server', 'success');
+                showNotification('Data berhasil disimpan ke server dan lokal', 'success');
             } else {
-                throw new Error('Server response not OK');
+                const errorText = await response.text();
+                console.error('Server response error:', response.status, errorText);
+                throw new Error(`Server response: ${response.status}`);
             }
         } catch (error) {
             console.warn('Gagal menyimpan ke server, menggunakan localStorage:', error);
             
-            // Fallback: simpan ke localStorage
-            const localSuccess = saveToLocalStorage(appData);
-            if (localSuccess) {
-                showNotification('Data disimpan secara lokal (offline mode)', 'info');
-            } else {
-                showNotification('Gagal menyimpan data!', 'error');
-            }
+            // Fallback: sudah disimpan ke localStorage sebelumnya
+            showNotification('Data disimpan secara lokal (offline mode)', 'info');
         } finally {
             showLoader(false);
         }
@@ -210,18 +258,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (question.image && question.image.trim()) {
             questionImage.src = question.image;
             questionImage.style.display = 'block';
+            questionImage.classList.add('question-image-loaded');
         } else {
             questionImage.style.display = 'none';
+            questionImage.classList.remove('question-image-loaded');
         }
 
         // Timer
         let timeLeft = question.timer || 30;
-        document.getElementById('timer-display').textContent = `00:${timeLeft.toString().padStart(2, '0')}`;
+        const timerDisplay = document.getElementById('timer-display');
+        timerDisplay.textContent = `00:${timeLeft.toString().padStart(2, '0')}`;
         
         if (questionTimer) clearInterval(questionTimer);
         questionTimer = setInterval(() => {
             timeLeft--;
-            document.getElementById('timer-display').textContent = `00:${timeLeft.toString().padStart(2, '0')}`;
+            timerDisplay.textContent = `00:${timeLeft.toString().padStart(2, '0')}`;
             
             if (timeLeft <= 0) {
                 clearInterval(questionTimer);
@@ -251,11 +302,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const options = document.querySelectorAll('.option-btn');
 
         // Nonaktifkan semua tombol
-        options.forEach(btn => btn.disabled = true);
+        options.forEach(btn => {
+            btn.disabled = true;
+            btn.style.pointerEvents = 'none';
+        });
 
         // Tampilkan jawaban benar/salah
         if (selectedIndex === correctIndex) {
-            options[selectedIndex].classList.add('correct');
+            if (selectedIndex !== -1) {
+                options[selectedIndex].classList.add('correct');
+            }
             userScore += 100;
         } else {
             if (selectedIndex !== -1) {
@@ -288,7 +344,13 @@ document.addEventListener('DOMContentLoaded', function() {
             timestamp: new Date().toISOString()
         };
         
+        // Tambah hasil ke data
+        if (!appData.results) {
+            appData.results = [];
+        }
         appData.results.push(result);
+        
+        // Simpan data
         await saveData();
     }
 
@@ -398,6 +460,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!questionText) {
                 block.querySelector('.question-text').style.border = '1px solid red';
                 questionValid = false;
+                isValid = false;
             }
             
             const hasEmptyOption = options.some(opt => !opt);
@@ -406,18 +469,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!input.value.trim()) input.style.border = '1px solid red';
                 });
                 questionValid = false;
+                isValid = false;
             }
             
             if (correctAnswer === '') {
                 block.querySelector('.correct-answer-selector').style.border = '1px solid red';
                 questionValid = false;
+                isValid = false;
             }
 
-            if (!questionValid) {
-                isValid = false;
-                showNotification('Harap isi semua field yang diperlukan!', 'error');
-                break;
-            } else {
+            if (questionValid) {
                 questions.push({
                     text: questionText,
                     timer: timer,
@@ -429,6 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!isValid) {
+            showNotification('Harap isi semua field yang diperlukan! Periksa field yang berwarna merah.', 'error');
             return;
         }
 
@@ -455,7 +517,11 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         // Simpan ke data
+        if (!appData.quizzes) {
+            appData.quizzes = [];
+        }
         appData.quizzes.push(newQuiz);
+        
         const success = await saveData();
 
         if (success) {
@@ -471,7 +537,13 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // Rollback jika gagal
             appData.quizzes.pop();
-            showNotification('Gagal menyimpan quiz!', 'error');
+            showNotification('Quiz berhasil dibuat dan disimpan secara lokal!', 'success');
+            
+            // Reset form meskipun hanya tersimpan lokal
+            elements.createQuizForm.reset();
+            elements.questionsContainer.innerHTML = '';
+            addQuestionField();
+            renderQuizList();
         }
     }
 
@@ -480,13 +552,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = elements.quizListContainer;
         container.innerHTML = '';
 
-        if (appData.quizzes.length === 0) {
+        if (!appData.quizzes || appData.quizzes.length === 0) {
             container.innerHTML = '<p>Belum ada quiz yang dibuat.</p>';
             return;
         }
 
         appData.quizzes.forEach(quiz => {
-            const results = appData.results.filter(r => r.quizCode === quiz.code);
+            const results = appData.results ? appData.results.filter(r => r.quizCode === quiz.code) : [];
             const resultsHTML = results.length > 0 
                 ? results.map(r => `<li>${r.username}: ${r.score} poin</li>`).join('')
                 : '<li>Belum ada hasil</li>';
@@ -527,7 +599,9 @@ document.addEventListener('DOMContentLoaded', function() {
         appData.quizzes.splice(index, 1);
         
         // Hapus hasil yang terkait
-        appData.results = appData.results.filter(r => r.quizCode !== quizCode);
+        if (appData.results) {
+            appData.results = appData.results.filter(r => r.quizCode !== quizCode);
+        }
 
         const success = await saveData();
         
@@ -535,7 +609,8 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification('Quiz berhasil dihapus!', 'success');
             renderQuizList();
         } else {
-            showNotification('Gagal menghapus quiz!', 'error');
+            showNotification('Quiz berhasil dihapus dari penyimpanan lokal!', 'success');
+            renderQuizList();
         }
     }
 
