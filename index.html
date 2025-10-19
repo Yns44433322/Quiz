@@ -11,6 +11,10 @@
 </head>
 <body>
     <div id="admin-icon" class="admin-icon" title="Admin Login">👤</div>
+    
+    <div id="server-status" class="server-status">
+        <span id="server-status-text">Terhubung</span>
+    </div>
 
     <div class="main-container">
         <div id="landing-page" class="page active">
@@ -89,7 +93,7 @@
                 
                 <div class="admin-sections">
                     <div class="admin-section">
-                        <h3>Buat Quiz Baru</h3>
+                        <h3 id="admin-form-title">Buat Quiz Baru</h3>
                         <form id="create-quiz-form" class="admin-form">
                             <div class="form-group">
                                 <label for="new-quiz-title" class="form-label">Judul Quiz</label>
@@ -108,7 +112,8 @@
                             
                             <div class="form-actions">
                                 <button type="button" id="add-question-btn" class="btn btn-secondary">+ Tambah Pertanyaan</button>
-                                <button type="submit" class="btn btn-primary">Simpan Quiz</button>
+                                <button type="submit" id="save-quiz-btn" class="btn btn-primary">Simpan Quiz</button>
+                                <button type="button" id="cancel-edit-btn" class="btn btn-secondary" style="display: none;">Batal Edit</button>
                             </div>
                         </form>
                     </div>

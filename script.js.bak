@@ -121,7 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return { quizzes: [], results: [] };
     }
-    
     function getApiConfig() {
         const part1 = '68f4fb0d';
         const part2 = '43b1c97be971204d';
