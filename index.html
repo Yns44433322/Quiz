@@ -12,9 +12,7 @@
 <body>
     <div id="admin-icon" class="admin-icon" title="Admin Login">👤</div>
 
-    <!-- Main Container untuk semua halaman -->
     <div class="main-container">
-        <!-- Halaman Utama -->
         <div id="landing-page" class="page active">
             <div class="content-box">
                 <h1 class="title">QUIZ MASTER</h1>
@@ -24,7 +22,6 @@
             </div>
         </div>
 
-        <!-- Halaman Input Pemain -->
         <div id="player-entry-page" class="page">
             <div class="content-box">
                 <h2 class="subtitle">Masuk Kuis</h2>
@@ -37,7 +34,6 @@
             </div>
         </div>
 
-        <!-- Halaman Kuis -->
         <div id="quiz-page" class="page">
             <div class="content-box">
                 <div class="quiz-top-bar">
@@ -55,7 +51,6 @@
             </div>
         </div>
 
-        <!-- Halaman Skor -->
         <div id="score-page" class="page">
             <div class="content-box">
                 <h2 class="subtitle">Kuis Selesai!</h2>
@@ -68,7 +63,6 @@
             </div>
         </div>
 
-        <!-- Admin Panel -->
         <div id="admin-panel" class="page">
             <div class="content-box admin-content">
                 <div class="admin-header">
@@ -118,7 +112,6 @@
         </div>
     </div>
 
-    <!-- Modal Admin Login -->
     <div id="admin-login-popup" class="modal">
         <div class="modal-content">
             <span class="close-btn">&times;</span>
@@ -131,15 +124,42 @@
         </div>
     </div>
 
-    <!-- Loader -->
+    <div id="edit-quiz-modal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close-btn" id="close-edit-modal">&times;</span>
+            <h2 class="subtitle">Edit Quiz</h2>
+            <form id="edit-quiz-form">
+                <div class="form-group">
+                    <label for="edit-quiz-title" class="form-label">Judul Quiz</label>
+                    <input type="text" id="edit-quiz-title" class="input-field" placeholder="Masukkan judul quiz" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-quiz-code" class="form-label">Kode Quiz</label>
+                    <input type="text" id="edit-quiz-code" class="input-field" readonly>
+                    <small class="form-hint">Kode quiz tidak dapat diubah</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Pertanyaan</label>
+                    <div id="edit-questions-container" class="questions-container"></div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" id="edit-add-question-btn" class="btn btn-secondary">+ Tambah Pertanyaan</button>
+                    <button type="submit" class="btn btn-primary">Update Quiz</button>
+                    <button type="button" id="cancel-edit-btn" class="btn btn-secondary">Batal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="loader" class="loader-overlay" style="display: none;">
         <div class="loader-spinner"></div>
     </div>
 
-    <!-- Notifikasi -->
     <div id="notification-container"></div>
 
-    <!-- Modal Konfirmasi -->
     <div id="custom-confirm-modal" class="modal">
         <div class="modal-content">
             <p id="custom-confirm-text"></p>
