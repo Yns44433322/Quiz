@@ -11,10 +11,6 @@
 </head>
 <body>
     <div id="admin-icon" class="admin-icon" title="Admin Login">👤</div>
-    
-    <div id="server-status" class="server-status">
-        <span id="server-status-text">Terhubung</span>
-    </div>
 
     <div class="main-container">
         <div id="landing-page" class="page active">
@@ -87,13 +83,14 @@
                     <h2 class="subtitle">Admin Panel</h2>
                     <div class="admin-controls">
                         <button id="show-leaderboard-btn" class="btn btn-primary" type="button">Tampilkan Leaderboard</button>
+                        <button id="admin-manager-btn" class="btn btn-primary" type="button">Kelola Admin</button>
                         <button id="admin-logout-btn" class="btn btn-secondary" type="button">Logout</button>
                     </div>
                 </div>
                 
                 <div class="admin-sections">
                     <div class="admin-section">
-                        <h3 id="admin-form-title">Buat Quiz Baru</h3>
+                        <h3>Buat Quiz Baru</h3>
                         <form id="create-quiz-form" class="admin-form">
                             <div class="form-group">
                                 <label for="new-quiz-title" class="form-label">Judul Quiz</label>
@@ -112,8 +109,7 @@
                             
                             <div class="form-actions">
                                 <button type="button" id="add-question-btn" class="btn btn-secondary">+ Tambah Pertanyaan</button>
-                                <button type="submit" id="save-quiz-btn" class="btn btn-primary">Simpan Quiz</button>
-                                <button type="button" id="cancel-edit-btn" class="btn btn-secondary" style="display: none;">Batal Edit</button>
+                                <button type="submit" class="btn btn-primary">Simpan Quiz</button>
                             </div>
                         </form>
                     </div>
@@ -126,11 +122,90 @@
             </div>
         </div>
 
+        <div id="admin-manager-page" class="page">
+            <div class="content-box admin-content">
+                <div class="admin-header">
+                    <h2 class="subtitle">Manajemen Admin</h2>
+                    <div class="admin-controls">
+                        <button id="back-to-admin-btn" class="btn btn-secondary" type="button">Kembali ke Admin</button>
+                    </div>
+                </div>
+                
+                <div class="admin-sections">
+                    <div class="admin-section">
+                        <h3>Admin Utama</h3>
+                        <form id="change-main-admin-form" class="admin-form">
+                            <div class="form-group">
+                                <label for="main-admin-username" class="form-label">Username Admin Utama</label>
+                                <input type="text" id="main-admin-username" class="input-field" placeholder="Username admin utama" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="main-admin-password" class="form-label">Password Admin Utama</label>
+                                <input type="password" id="main-admin-password" class="input-field" placeholder="Password admin utama" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="main-admin-new-password" class="form-label">Password Baru (Opsional)</label>
+                                <input type="password" id="main-admin-new-password" class="input-field" placeholder="Kosongkan jika tidak ingin mengganti">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Update Admin Utama</button>
+                        </form>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>Tambah Admin Baru</h3>
+                        <form id="add-admin-form" class="admin-form">
+                            <div class="form-group">
+                                <label for="new-admin-username" class="form-label">Username Admin Baru</label>
+                                <input type="text" id="new-admin-username" class="input-field" placeholder="Username admin baru" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="new-admin-password" class="form-label">Password Admin Baru</label>
+                                <input type="password" id="new-admin-password" class="input-field" placeholder="Password admin baru" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="admin-expiry-date" class="form-label">Masa Berlaku</label>
+                                <input type="date" id="admin-expiry-date" class="input-field" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Hak Akses</label>
+                                <div class="permissions-container">
+                                    <label class="permission-checkbox">
+                                        <input type="checkbox" id="permission-edit" checked> Edit & Tambah Soal
+                                    </label>
+                                    <label class="permission-checkbox">
+                                        <input type="checkbox" id="permission-create" checked> Buat Materi & Kode
+                                    </label>
+                                    <label class="permission-checkbox">
+                                        <input type="checkbox" id="permission-delete"> Hapus Quiz
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Tambah Admin</button>
+                        </form>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>Daftar Admin</h3>
+                        <div id="admin-list" class="admin-list">
+                            <p>Memuat daftar admin...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="leaderboard-page" class="page">
             <div class="content-box">
                 <div class="leaderboard-header">
                     <h2 class="title">🏆 Leaderboard</h2>
-                    <button id="back-to-admin-btn" class="btn btn-secondary">Kembali ke Admin</button>
+                    <button id="back-to-admin-from-leaderboard" class="btn btn-secondary">Kembali ke Admin</button>
                 </div>
                 <div class="leaderboard-filters">
                     <select id="quiz-filter" class="input-field">

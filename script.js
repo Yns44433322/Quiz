@@ -5,7 +5,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // State aplikasi
     let appData = {
         quizzes: [],
-        results: []
+        results: [],
+        mainAdmin: {
+            username: 'admin',
+            password: 'quizmaster123'
+        },
+        subAdmins: []
     };
     let currentQuiz = null;
     let currentQuestionIndex = 0;
@@ -20,9 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let badgesEarned = [];
     let badgeChallengeQuestions = [];
 
-    // Variabel untuk mode edit
-    let currentEditQuizCode = null;
-
     // DOM Elements
     const elements = {
         pages: document.querySelectorAll('.page'),
@@ -35,15 +37,14 @@ document.addEventListener('DOMContentLoaded', function() {
         quizListContainer: document.getElementById('quiz-list'),
         addQuestionBtn: document.getElementById('add-question-btn'),
         showLeaderboardBtn: document.getElementById('show-leaderboard-btn'),
+        adminManagerBtn: document.getElementById('admin-manager-btn'),
         backToAdminBtn: document.getElementById('back-to-admin-btn'),
         globalLeaderboard: document.getElementById('global-leaderboard'),
         quizFilter: document.getElementById('quiz-filter'),
         timeFilter: document.getElementById('time-filter'),
-        serverStatus: document.getElementById('server-status'),
-        serverStatusText: document.getElementById('server-status-text'),
-        adminFormTitle: document.getElementById('admin-form-title'),
-        saveQuizBtn: document.getElementById('save-quiz-btn'),
-        cancelEditBtn: document.getElementById('cancel-edit-btn')
+        adminList: document.getElementById('admin-list'),
+        changeMainAdminForm: document.getElementById('change-main-admin-form'),
+        addAdminForm: document.getElementById('add-admin-form')
     };
 
     // ==================== FUNGSI UTILITAS ====================
@@ -73,13 +74,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById(pageId).classList.add('active');
         
         // Sembunyikan admin icon di halaman tertentu
-        const hideAdminIcon = ['quiz-page', 'score-page', 'admin-panel', 'leaderboard-page', 'badge-challenge-page'].includes(pageId);
+        const hideAdminIcon = ['quiz-page', 'score-page', 'admin-panel', 'leaderboard-page', 'badge-challenge-page', 'admin-manager-page'].includes(pageId);
         elements.adminIcon.style.display = hideAdminIcon ? 'none' : 'flex';
-        
-        // Update leaderboard jika pindah ke halaman leaderboard
-        if (pageId === 'leaderboard-page') {
-            renderLeaderboard();
-        }
     }
 
     // Format waktu
@@ -87,12 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    // Update status server
-    function updateServerStatus(status, message) {
-        elements.serverStatus.className = `server-status ${status}`;
-        elements.serverStatusText.textContent = message;
     }
 
     // ==================== FUNGSI DATA STORAGE ====================
@@ -114,15 +104,25 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const data = localStorage.getItem('quizMasterData');
             if (data) {
-                return JSON.parse(data);
+                const parsedData = JSON.parse(data);
+                // Pastikan struktur data konsisten
+                if (!parsedData.mainAdmin) {
+                    parsedData.mainAdmin = { username: 'admin', password: 'quizmaster123' };
+                }
+                if (!parsedData.subAdmins) {
+                    parsedData.subAdmins = [];
+                }
+                return parsedData;
             }
         } catch (error) {
             console.error('Error loading from localStorage:', error);
         }
-        return { quizzes: [], results: [] };
+        return { quizzes: [], results: [], mainAdmin: { username: 'admin', password: 'quizmaster123' }, subAdmins: [] };
     }
-    
+
+    // Fungsi untuk mendapatkan konfigurasi API (disembunyikan)
     function getApiConfig() {
+        // Data yang diacak dan dipisah
         const part1 = '68f4fb0d';
         const part2 = '43b1c97be971204d';
         const part3 = '$2a$10$pGIBtyGF2MLAh5h1WMv9M';
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (response.ok) {
                 const data = await response.json();
-                const serverData = data.record || { quizzes: [], results: [] };
+                const serverData = data.record || { quizzes: [], results: [], mainAdmin: { username: 'admin', password: 'quizmaster123' }, subAdmins: [] };
                 
                 console.log('Data dari server:', serverData);
                 
@@ -191,25 +191,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     appData.results = combinedResults;
                 }
                 
+                // Update admin data dari server
+                if (serverData.mainAdmin) {
+                    appData.mainAdmin = serverData.mainAdmin;
+                }
+                if (serverData.subAdmins) {
+                    appData.subAdmins = serverData.subAdmins;
+                }
+                
                 // Pastikan struktur data konsisten
                 if (!appData.quizzes) appData.quizzes = [];
                 if (!appData.results) appData.results = [];
+                if (!appData.mainAdmin) appData.mainAdmin = { username: 'admin', password: 'quizmaster123' };
+                if (!appData.subAdmins) appData.subAdmins = [];
                 
                 // Simpan data gabungan ke localStorage
                 saveToLocalStorage(appData);
                 
                 console.log('Data berhasil diambil dari server:', appData);
-                updateServerStatus('connected', 'Terhubung');
-                showNotification('Data berhasil disinkronisasi dengan server', 'success');
+                // NOTIFIKASI SUKSES DIHAPUS - tidak ada notifikasi sukses
             } else {
                 console.warn('Tidak bisa mengakses server, menggunakan data lokal. Status:', response.status);
-                updateServerStatus('disconnected', 'Offline');
-                showNotification('Mode offline: menggunakan data lokal', 'info');
+                showNotification('Tidak dapat terhubung ke server', 'error');
             }
         } catch (error) {
             console.warn('Error fetching from server, using localStorage data:', error);
-            updateServerStatus('error', 'Error');
-            showNotification('Mode offline: menggunakan data lokal', 'info');
+            showNotification('Error: Gagal mengambil data dari server', 'error');
         } finally {
             showLoader(false);
         }
@@ -245,8 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok) {
                 serverSuccess = true;
                 console.log('Data berhasil disimpan ke server:', appData);
-                updateServerStatus('connected', 'Terhubung');
-                showNotification('Data berhasil disimpan ke server dan lokal', 'success');
+                // NOTIFIKASI SUKSES DIHAPUS - tidak ada notifikasi
             } else {
                 const errorText = await response.text();
                 console.error('Server response error:', response.status, errorText);
@@ -254,15 +260,146 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.warn('Gagal menyimpan ke server, menggunakan localStorage:', error);
-            updateServerStatus('disconnected', 'Offline');
-            
-            // Fallback: sudah disimpan ke localStorage sebelumnya
-            showNotification('Data disimpan secara lokal (offline mode)', 'info');
+            showNotification('Error: Gagal menyimpan ke server', 'error');
         } finally {
             showLoader(false);
         }
         
         return serverSuccess;
+    }
+
+    // ==================== FUNGSI MANAJEMEN ADMIN ====================
+
+    // Render daftar admin
+    function renderAdminList() {
+        const container = elements.adminList;
+        container.innerHTML = '';
+
+        if (!appData.subAdmins || appData.subAdmins.length === 0) {
+            container.innerHTML = '<p>Belum ada admin tambahan.</p>';
+            return;
+        }
+
+        appData.subAdmins.forEach((admin, index) => {
+            const expiryDate = new Date(admin.expiryDate);
+            const now = new Date();
+            const isExpired = expiryDate < now;
+            
+            const adminHTML = `
+                <div class="admin-item ${isExpired ? 'expired' : ''}">
+                    <div class="admin-item-header">
+                        <div class="admin-item-info">
+                            <div class="admin-item-username">${admin.username}</div>
+                            <div class="admin-item-expiry">
+                                Masa berlaku: ${expiryDate.toLocaleDateString('id-ID')}
+                                ${isExpired ? ' (KADALUARSA)' : ''}
+                            </div>
+                        </div>
+                        <div class="admin-item-actions">
+                            <button class="btn btn-danger delete-admin-btn" data-index="${index}" type="button">Hapus</button>
+                        </div>
+                    </div>
+                    <div class="admin-item-permissions">
+                        ${admin.permissions.edit ? '<span class="permission-tag">Edit Soal</span>' : ''}
+                        ${admin.permissions.create ? '<span class="permission-tag">Buat Materi</span>' : ''}
+                        ${admin.permissions.delete ? '<span class="permission-tag">Hapus Quiz</span>' : ''}
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', adminHTML);
+        });
+
+        // Event listener untuk tombol hapus admin
+        container.querySelectorAll('.delete-admin-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                deleteSubAdmin(index);
+            });
+        });
+    }
+
+    // Hapus admin tambahan
+    async function deleteSubAdmin(index) {
+        if (index >= 0 && index < appData.subAdmins.length) {
+            const admin = appData.subAdmins[index];
+            
+            // Gunakan confirm bawaan browser (bukan popup putih)
+            if (confirm(`Apakah Anda yakin ingin menghapus admin "${admin.username}"?`)) {
+                appData.subAdmins.splice(index, 1);
+                await saveData();
+                renderAdminList();
+                showNotification('Admin berhasil dihapus!', 'success');
+            }
+        }
+    }
+
+    // Tambah admin baru
+    async function addSubAdmin(username, password, expiryDate, permissions) {
+        // Cek duplikasi username
+        if (appData.subAdmins.some(admin => admin.username === username) || username === appData.mainAdmin.username) {
+            showNotification('Username sudah digunakan!', 'error');
+            return false;
+        }
+
+        const newAdmin = {
+            username: username,
+            password: password,
+            expiryDate: expiryDate,
+            permissions: permissions,
+            createdAt: new Date().toISOString()
+        };
+
+        appData.subAdmins.push(newAdmin);
+        await saveData();
+        renderAdminList();
+        showNotification(`Admin "${username}" berhasil ditambahkan!`, 'success');
+        return true;
+    }
+
+    // Update admin utama
+    async function updateMainAdmin(newUsername, newPassword) {
+        if (newUsername && newUsername !== appData.mainAdmin.username) {
+            appData.mainAdmin.username = newUsername;
+        }
+        
+        if (newPassword) {
+            appData.mainAdmin.password = newPassword;
+        }
+        
+        await saveData();
+        showNotification('Admin utama berhasil diperbarui!', 'success');
+        return true;
+    }
+
+    // Cek apakah user adalah admin utama
+    function isMainAdmin(username, password) {
+        return username === appData.mainAdmin.username && password === appData.mainAdmin.password;
+    }
+
+    // Cek apakah user adalah admin tambahan
+    function isSubAdmin(username, password) {
+        const now = new Date();
+        return appData.subAdmins.some(admin => 
+            admin.username === username && 
+            admin.password === password &&
+            new Date(admin.expiryDate) >= now
+        );
+    }
+
+    // Dapatkan permissions admin
+    function getAdminPermissions(username) {
+        if (username === appData.mainAdmin.username) {
+            return {
+                edit: true,
+                create: true,
+                delete: true,
+                manageAdmins: true
+            };
+        }
+        
+        const admin = appData.subAdmins.find(a => a.username === username);
+        return admin ? admin.permissions : null;
     }
 
     // ==================== FUNGSI QUIZ & SISTEM POINT ====================
@@ -437,6 +574,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function prepareBadgeChallenge() {
         badgeChallengeQuestions = [];
         
+        // Ambil 3 pertanyaan acak dari quiz yang salah dijawab oleh user
+        const wrongQuestions = [];
+        
         // Untuk demo, kita buat beberapa pertanyaan challenge
         const challengeQuestions = [
             {
@@ -576,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ==================== FUNGSI ADMIN ====================
 
     // Tambah field pertanyaan
-    function addQuestionField(container = elements.questionsContainer, questionData = null) {
+    function addQuestionField(container = elements.questionsContainer) {
         const questionCount = container.querySelectorAll('.question-block').length + 1;
         
         const questionHTML = `
@@ -585,13 +725,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     <h5>Pertanyaan ${questionCount}</h5>
                     <button type="button" class="delete-question-btn">Hapus</button>
                 </div>
-                <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" value="${questionData ? questionData.text : ''}" required>
-                <input type="number" class="input-field question-timer" placeholder="Waktu (detik)" value="${questionData ? questionData.timer : 30}" min="10" required>
-                <input type="url" class="input-field question-image" placeholder="URL Gambar (opsional)" value="${questionData ? questionData.image : ''}">
-                <input type="text" class="input-field option" placeholder="Opsi Jawaban 1" value="${questionData ? questionData.options[0] : ''}" required>
-                <input type="text" class="input-field option" placeholder="Opsi Jawaban 2" value="${questionData ? questionData.options[1] : ''}" required>
-                <input type="text" class="input-field option" placeholder="Opsi Jawaban 3" value="${questionData ? questionData.options[2] : ''}" required>
-                <input type="text" class="input-field option" placeholder="Opsi Jawaban 4" value="${questionData ? questionData.options[3] : ''}" required>
+                <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" required>
+                <input type="number" class="input-field question-timer" placeholder="Waktu (detik)" value="30" min="10" required>
+                <input type="url" class="input-field question-image" placeholder="URL Gambar (opsional)">
+                <input type="text" class="input-field option" placeholder="Opsi Jawaban 1" required>
+                <input type="text" class="input-field option" placeholder="Opsi Jawaban 2" required>
+                <input type="text" class="input-field option" placeholder="Opsi Jawaban 3" required>
+                <input type="text" class="input-field option" placeholder="Opsi Jawaban 4" required>
                 <div class="correct-answer-selector">
                     <div class="form-label">Pilih Jawaban Benar:</div>
                     <div class="answer-choice-container">
@@ -601,7 +741,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button type="button" class="answer-choice-btn" data-index="3">Opsi 4</button>
                     </div>
                 </div>
-                <input type="hidden" class="correct-answer" value="${questionData ? questionData.answer : ''}">
+                <input type="hidden" class="correct-answer" value="">
             </div>
         `;
         
@@ -631,14 +771,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 newQuestion.querySelector('.correct-answer').value = this.dataset.index;
             });
         });
-        
-        // Jika ada data pertanyaan, set jawaban yang benar
-        if (questionData && questionData.answer !== undefined) {
-            const correctBtn = newQuestion.querySelector(`.answer-choice-btn[data-index="${questionData.answer}"]`);
-            if (correctBtn) {
-                correctBtn.click();
-            }
-        }
     }
 
     // Update nomor pertanyaan
@@ -649,55 +781,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Mode edit quiz
-    function editQuiz(quizCode) {
-        const quiz = appData.quizzes.find(q => q.code === quizCode);
-        if (!quiz) {
-            showNotification('Quiz tidak ditemukan!', 'error');
-            return;
-        }
-
-        currentEditQuizCode = quizCode;
-        
-        // Update judul form
-        elements.adminFormTitle.textContent = `Edit Quiz: ${quiz.title}`;
-        elements.saveQuizBtn.textContent = 'Update Quiz';
-        elements.cancelEditBtn.style.display = 'inline-block';
-        
-        // Isi form dengan data quiz
-        document.getElementById('new-quiz-title').value = quiz.title;
-        document.getElementById('custom-quiz-code').value = quiz.code;
-        
-        // Kosongkan container pertanyaan
-        elements.questionsContainer.innerHTML = '';
-        
-        // Tambah pertanyaan dari quiz
-        quiz.questions.forEach(question => {
-            addQuestionField(elements.questionsContainer, question);
-        });
-        
-        showNotification(`Sedang mengedit quiz: ${quiz.title}`, 'success');
-    }
-
-    // Batalkan edit
-    function cancelEdit() {
-        currentEditQuizCode = null;
-        elements.adminFormTitle.textContent = 'Buat Quiz Baru';
-        elements.saveQuizBtn.textContent = 'Simpan Quiz';
-        elements.cancelEditBtn.style.display = 'none';
-        
-        // Reset form
-        elements.createQuizForm.reset();
-        elements.questionsContainer.innerHTML = '';
-        addQuestionField();
-        
-        showNotification('Edit dibatalkan', 'info');
-    }
-
-    // Handle buat atau update quiz
+    // Handle buat quiz baru
     async function handleCreateQuiz(e) {
         e.preventDefault();
-        console.log(currentEditQuizCode ? 'Mengupdate quiz...' : 'Membuat quiz baru...');
+        console.log('Membuat quiz baru...');
 
         const title = document.getElementById('new-quiz-title').value.trim();
         const customCode = document.getElementById('custom-quiz-code').value.trim();
@@ -774,71 +861,49 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate kode quiz
         let quizCode = customCode.toUpperCase() || `QM${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
         
-        if (currentEditQuizCode) {
-            // Mode edit: update quiz yang sudah ada
-            const quizIndex = appData.quizzes.findIndex(q => q.code === currentEditQuizCode);
-            if (quizIndex === -1) {
-                showNotification('Quiz tidak ditemukan!', 'error');
-                return;
-            }
-            
-            // Update quiz
-            appData.quizzes[quizIndex] = {
-                ...appData.quizzes[quizIndex],
-                title: title,
-                code: quizCode,
-                questions: questions
-            };
-            
-            const success = await saveData();
-            
-            if (success) {
-                showNotification(`Quiz "${title}" berhasil diupdate!`, 'success');
-            } else {
-                showNotification('Quiz berhasil diupdate dan disimpan secara lokal!', 'success');
-            }
-            
-            // Reset mode edit
-            cancelEdit();
-        } else {
-            // Mode buat baru: cek kode duplikat
-            if (appData.quizzes.some(q => q.code === quizCode)) {
-                showNotification('Kode quiz sudah digunakan. Silakan gunakan kode lain.', 'error');
-                return;
-            }
+        // Cek kode duplikat
+        if (appData.quizzes.some(q => q.code === quizCode)) {
+            showNotification('Kode quiz sudah digunakan. Silakan gunakan kode lain.', 'error');
+            return;
+        }
 
-            // Buat objek quiz
-            const newQuiz = {
-                title: title,
-                code: quizCode,
-                questions: questions,
-                createdAt: new Date().toISOString()
-            };
+        // Buat objek quiz
+        const newQuiz = {
+            title: title,
+            code: quizCode,
+            questions: questions,
+            createdAt: new Date().toISOString()
+        };
 
-            // Simpan ke data
-            if (!appData.quizzes) {
-                appData.quizzes = [];
-            }
-            appData.quizzes.push(newQuiz);
-            
-            const success = await saveData();
+        // Simpan ke data
+        if (!appData.quizzes) {
+            appData.quizzes = [];
+        }
+        appData.quizzes.push(newQuiz);
+        
+        const success = await saveData();
 
-            if (success) {
-                showNotification(`Quiz "${title}" berhasil dibuat! Kode: ${quizCode}`, 'success');
-            } else {
-                // Rollback jika gagal
-                appData.quizzes.pop();
-                showNotification('Quiz berhasil dibuat dan disimpan secara lokal!', 'success');
-            }
+        if (success) {
+            showNotification(`Quiz "${title}" berhasil dibuat! Kode: ${quizCode}`, 'success');
             
             // Reset form
             elements.createQuizForm.reset();
             elements.questionsContainer.innerHTML = '';
             addQuestionField();
+            
+            // Refresh daftar quiz
+            renderQuizList();
+        } else {
+            // Rollback jika gagal
+            appData.quizzes.pop();
+            showNotification('Quiz berhasil dibuat dan disimpan secara lokal!', 'success');
+            
+            // Reset form meskipun hanya tersimpan lokal
+            elements.createQuizForm.reset();
+            elements.questionsContainer.innerHTML = '';
+            addQuestionField();
+            renderQuizList();
         }
-        
-        // Refresh daftar quiz
-        renderQuizList();
     }
 
     // Render daftar quiz
@@ -877,9 +942,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Hapus quiz (tanpa popup putih)
+    // Hapus quiz (TANPA POP-UP PUTIH)
     async function deleteQuiz(quizCode) {
-        // Gunakan confirm bawaan browser
+        // Gunakan confirm bawaan browser (bukan popup putih)
         const quiz = appData.quizzes.find(q => q.code === quizCode);
         if (!quiz) return;
         
@@ -1022,17 +1087,65 @@ document.addEventListener('DOMContentLoaded', function() {
             showPage('landing-page');
         });
         
+        // Admin Manager
+        elements.adminManagerBtn.addEventListener('click', () => {
+            // Isi form dengan data admin utama saat ini
+            document.getElementById('main-admin-username').value = appData.mainAdmin.username;
+            document.getElementById('main-admin-password').value = '';
+            document.getElementById('main-admin-new-password').value = '';
+            
+            // Set tanggal minimal untuk masa berlaku admin (hari ini)
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('admin-expiry-date').min = tomorrow.toISOString().split('T')[0];
+            
+            renderAdminList();
+            showPage('admin-manager-page');
+        });
+        
+        elements.backToAdminBtn.addEventListener('click', () => showPage('admin-panel'));
+        
+        // Forms admin manager
+        elements.changeMainAdminForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('main-admin-username').value.trim();
+            const currentPassword = document.getElementById('main-admin-password').value;
+            const newPassword = document.getElementById('main-admin-new-password').value;
+            
+            // Verifikasi password saat ini
+            if (currentPassword !== appData.mainAdmin.password) {
+                showNotification('Password saat ini salah!', 'error');
+                return;
+            }
+            
+            await updateMainAdmin(username, newPassword || currentPassword);
+        });
+        
+        elements.addAdminForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('new-admin-username').value.trim();
+            const password = document.getElementById('new-admin-password').value;
+            const expiryDate = document.getElementById('admin-expiry-date').value;
+            
+            const permissions = {
+                edit: document.getElementById('permission-edit').checked,
+                create: document.getElementById('permission-create').checked,
+                delete: document.getElementById('permission-delete').checked
+            };
+            
+            await addSubAdmin(username, password, expiryDate, permissions);
+            elements.addAdminForm.reset();
+        });
+        
         // Leaderboard
         elements.showLeaderboardBtn.addEventListener('click', showLeaderboard);
-        elements.backToAdminBtn.addEventListener('click', () => showPage('admin-panel'));
+        document.getElementById('back-to-admin-from-leaderboard').addEventListener('click', () => showPage('admin-panel'));
         elements.quizFilter.addEventListener('change', renderLeaderboard);
         elements.timeFilter.addEventListener('change', renderLeaderboard);
         
         // Badge challenge
         document.getElementById('submit-badge-challenge').addEventListener('click', handleBadgeChallengeSubmit);
-        
-        // Cancel edit
-        elements.cancelEditBtn.addEventListener('click', cancelEdit);
         
         // Forms
         elements.playerForm.addEventListener('submit', function(e) {
@@ -1052,10 +1165,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const username = document.getElementById('admin-username').value;
             const password = document.getElementById('admin-password').value;
             
-            if (username === 'admin' && password === 'quizmaster123') {
+            // Cek login sebagai admin utama atau admin tambahan
+            if (isMainAdmin(username, password) || isSubAdmin(username, password)) {
                 document.getElementById('admin-login-popup').classList.remove('active');
                 showPage('admin-panel');
                 renderQuizList();
+                
+                // Sembunyikan tombol manajemen admin jika bukan admin utama
+                if (!isMainAdmin(username, password)) {
+                    elements.adminManagerBtn.style.display = 'none';
+                } else {
+                    elements.adminManagerBtn.style.display = 'block';
+                }
             } else {
                 showNotification('Username atau password salah!', 'error');
             }
@@ -1072,7 +1193,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target.classList.contains('delete-quiz-btn')) {
                 deleteQuiz(quizCode);
             } else if (e.target.classList.contains('edit-quiz-btn')) {
-                editQuiz(quizCode);
+                showNotification('Fitur edit sedang dalam pengembangan', 'info');
             }
         });
     }
