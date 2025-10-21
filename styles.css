@@ -334,6 +334,13 @@ body {
     opacity: 1;
 }
 
+/* Modal Besar untuk Edit Quiz */
+.large-modal {
+    max-width: 800px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
 .close-btn {
     position: absolute;
     top: 15px;

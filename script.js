@@ -17,13 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let userScore = 0;
     let questionTimer = null;
     let questionStartTime = 0;
+    let currentEditingQuiz = null;
     
     // Sistem lencana
     let currentStreak = 0;
     let hasStreakBadge = false;
     let hasSpeedBadge = false;
     let badgesEarned = [];
-    let badgeChallengeQuestions = [];
 
     // DOM Elements
     const elements = {
@@ -44,7 +44,10 @@ document.addEventListener('DOMContentLoaded', function() {
         timeFilter: document.getElementById('time-filter'),
         adminList: document.getElementById('admin-list'),
         changeMainAdminForm: document.getElementById('change-main-admin-form'),
-        addAdminForm: document.getElementById('add-admin-form')
+        addAdminForm: document.getElementById('add-admin-form'),
+        editQuizForm: document.getElementById('edit-quiz-form'),
+        editQuestionsContainer: document.getElementById('edit-questions-container'),
+        editAddQuestionBtn: document.getElementById('edit-add-question-btn')
     };
 
     // ==================== FUNGSI UTILITAS ====================
@@ -74,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById(pageId).classList.add('active');
         
         // Sembunyikan admin icon di halaman tertentu
-        const hideAdminIcon = ['quiz-page', 'score-page', 'admin-panel', 'leaderboard-page', 'badge-challenge-page', 'admin-manager-page'].includes(pageId);
+        const hideAdminIcon = ['quiz-page', 'score-page', 'admin-panel', 'leaderboard-page', 'admin-manager-page'].includes(pageId);
         elements.adminIcon.style.display = hideAdminIcon ? 'none' : 'flex';
     }
 
@@ -411,6 +414,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Cek apakah username sudah pernah mengerjakan quiz ini
+        const existingResult = appData.results.find(r => 
+            r.quizCode === quizCode && r.username === username
+        );
+
+        if (existingResult) {
+            showNotification(`Username "${username}" sudah pernah mengerjakan quiz ini! Silakan gunakan username lain.`, 'error');
+            return;
+        }
+
         currentQuiz = quiz;
         currentQuestionIndex = 0;
         userScore = 0;
@@ -542,9 +555,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     badgesEarned.push('streak');
                     document.getElementById('streak-badge').style.display = 'flex';
                     showNotification('🎉 Lencana Streak Unlocked! Dapatkan tantangan bonus!', 'success');
-                    
-                    // Siapkan tantangan lencana
-                    prepareBadgeChallenge();
                 }
             }
         } else {
@@ -559,112 +569,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Lanjut ke pertanyaan berikutnya setelah 2 detik
         setTimeout(() => {
-            // Jika punya streak badge dan ini adalah pertanyaan ke-5 dalam streak
-            if (hasStreakBadge && currentStreak % 5 === 0 && badgeChallengeQuestions.length > 0) {
-                showBadgeChallenge();
-            } else {
-                currentQuestionIndex++;
-                showQuestion();
-            }
+            currentQuestionIndex++;
+            showQuestion();
         }, 2000);
-    }
-
-    // Siapkan tantangan lencana
-    function prepareBadgeChallenge() {
-        badgeChallengeQuestions = [];
-        
-        // Untuk demo, kita buat beberapa pertanyaan challenge
-        const challengeQuestions = [
-            {
-                text: "Manakah jawaban yang SALAH tentang JavaScript?",
-                options: [
-                    "JavaScript adalah bahasa single-threaded",
-                    "JavaScript bisa berjalan di browser dan server",
-                    "JavaScript memiliki tipe data integer dan float terpisah", // Ini salah
-                    "JavaScript mendukung pemrograman berorientasi objek"
-                ],
-                correctIndex: 2
-            },
-            {
-                text: "Manakah yang BUKAN framework JavaScript?",
-                options: [
-                    "React",
-                    "Vue",
-                    "Angular", 
-                    "Django" // Ini salah (Django adalah Python)
-                ],
-                correctIndex: 3
-            }
-        ];
-        
-        badgeChallengeQuestions = challengeQuestions.slice(0, Math.min(3, challengeQuestions.length));
-    }
-
-    // Tampilkan tantangan lencana
-    function showBadgeChallenge() {
-        const container = document.getElementById('badge-questions-container');
-        container.innerHTML = '';
-        
-        badgeChallengeQuestions.forEach((question, qIndex) => {
-            const questionHTML = `
-                <div class="question-block">
-                    <h5>Tantangan ${qIndex + 1}</h5>
-                    <p>${question.text}</p>
-                    <div class="answer-choice-container">
-                        ${question.options.map((option, index) => `
-                            <button type="button" class="answer-choice-btn" data-qindex="${qIndex}" data-index="${index}">${option}</button>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-            container.innerHTML += questionHTML;
-        });
-        
-        // Reset selected answers
-        badgeChallengeQuestions.forEach((_, index) => {
-            badgeChallengeQuestions[index].selectedAnswer = -1;
-        });
-        
-        // Add event listeners
-        container.querySelectorAll('.answer-choice-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const qIndex = parseInt(this.dataset.qindex);
-                const index = parseInt(this.dataset.index);
-                
-                // Remove selected from all buttons in this question
-                this.parentElement.querySelectorAll('.answer-choice-btn').forEach(b => {
-                    b.classList.remove('selected');
-                });
-                
-                // Add selected to clicked button
-                this.classList.add('selected');
-                badgeChallengeQuestions[qIndex].selectedAnswer = index;
-            });
-        });
-        
-        showPage('badge-challenge-page');
-    }
-
-    // Handle submit tantangan lencana
-    function handleBadgeChallengeSubmit() {
-        let correctCount = 0;
-        
-        badgeChallengeQuestions.forEach((question, index) => {
-            if (question.selectedAnswer === question.correctIndex) {
-                correctCount++;
-            }
-        });
-        
-        // Berikan point bonus berdasarkan jumlah yang benar
-        const bonusPoints = correctCount * 50; // 50 point per jawaban benar
-        userScore += bonusPoints;
-        
-        showNotification(`🎉 Berhasil memperbaiki ${correctCount} jawaban! +${bonusPoints} point bonus!`, 'success');
-        
-        // Lanjut ke pertanyaan berikutnya
-        currentQuestionIndex++;
-        showPage('quiz-page');
-        showQuestion();
     }
 
     // Selesaikan quiz
@@ -709,10 +616,10 @@ document.addEventListener('DOMContentLoaded', function() {
         await saveData();
     }
 
-    // ==================== FUNGSI ADMIN ====================
+    // ==================== FUNGSI ADMIN QUIZ ====================
 
     // Tambah field pertanyaan
-    function addQuestionField(container = elements.questionsContainer) {
+    function addQuestionField(container = elements.questionsContainer, questionData = null) {
         const questionCount = container.querySelectorAll('.question-block').length + 1;
         
         const questionHTML = `
@@ -721,13 +628,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     <h5>Pertanyaan ${questionCount}</h5>
                     <button type="button" class="delete-question-btn">Hapus</button>
                 </div>
-                <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" required>
-                <input type="number" class="input-field question-timer" placeholder="Waktu (detik)" value="30" min="10" required>
-                <input type="url" class="input-field question-image" placeholder="URL Gambar (opsional)">
-                <input type="text" class="input-field option" placeholder="Opsi Jawaban 1" required>
-                <input type="text" class="input-field option" placeholder="Opsi Jawaban 2" required>
-                <input type="text" class="input-field option" placeholder="Opsi Jawaban 3" required>
-                <input type="text" class="input-field option" placeholder="Opsi Jawaban 4" required>
+                <input type="text" class="input-field question-text" placeholder="Teks Pertanyaan" value="${questionData ? questionData.text : ''}" required>
+                <input type="number" class="input-field question-timer" placeholder="Waktu (detik)" value="${questionData ? questionData.timer : 30}" min="10" required>
+                <input type="url" class="input-field question-image" placeholder="URL Gambar (opsional)" value="${questionData ? questionData.image || '' : ''}">
+                <input type="text" class="input-field option" placeholder="Opsi Jawaban 1" value="${questionData ? questionData.options[0] || '' : ''}" required>
+                <input type="text" class="input-field option" placeholder="Opsi Jawaban 2" value="${questionData ? questionData.options[1] || '' : ''}" required>
+                <input type="text" class="input-field option" placeholder="Opsi Jawaban 3" value="${questionData ? questionData.options[2] || '' : ''}" required>
+                <input type="text" class="input-field option" placeholder="Opsi Jawaban 4" value="${questionData ? questionData.options[3] || '' : ''}" required>
                 <div class="correct-answer-selector">
                     <div class="form-label">Pilih Jawaban Benar:</div>
                     <div class="answer-choice-container">
@@ -737,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button type="button" class="answer-choice-btn" data-index="3">Opsi 4</button>
                     </div>
                 </div>
-                <input type="hidden" class="correct-answer" value="">
+                <input type="hidden" class="correct-answer" value="${questionData ? questionData.answer : ''}">
             </div>
         `;
         
@@ -767,6 +674,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 newQuestion.querySelector('.correct-answer').value = this.dataset.index;
             });
         });
+
+        // Jika ada data pertanyaan, set jawaban yang benar
+        if (questionData && questionData.answer !== undefined) {
+            const correctBtn = newQuestion.querySelector(`.answer-choice-btn[data-index="${questionData.answer}"]`);
+            if (correctBtn) {
+                correctBtn.classList.add('selected');
+            }
+        }
     }
 
     // Update nomor pertanyaan
@@ -938,6 +853,132 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Edit quiz
+    function editQuiz(quizCode) {
+        const quiz = appData.quizzes.find(q => q.code === quizCode);
+        if (!quiz) return;
+
+        currentEditingQuiz = quiz;
+        
+        // Isi form edit dengan data quiz
+        document.getElementById('edit-quiz-title').value = quiz.title;
+        document.getElementById('edit-quiz-code').value = quiz.code;
+        
+        // Kosongkan container pertanyaan
+        elements.editQuestionsContainer.innerHTML = '';
+        
+        // Tambahkan pertanyaan dari quiz
+        quiz.questions.forEach(question => {
+            addQuestionField(elements.editQuestionsContainer, question);
+        });
+        
+        // Tampilkan modal edit
+        document.getElementById('edit-quiz-popup').classList.add('active');
+    }
+
+    // Handle update quiz
+    async function handleUpdateQuiz(e) {
+        e.preventDefault();
+        
+        if (!currentEditingQuiz) return;
+
+        const title = document.getElementById('edit-quiz-title').value.trim();
+
+        if (!title) {
+            showNotification('Judul quiz tidak boleh kosong!', 'error');
+            return;
+        }
+
+        // Kumpulkan data pertanyaan
+        const questions = [];
+        const questionBlocks = elements.editQuestionsContainer.querySelectorAll('.question-block');
+        let isValid = true;
+
+        // Reset semua border error
+        questionBlocks.forEach(block => {
+            block.querySelector('.question-text').style.border = '';
+            block.querySelectorAll('.option').forEach(input => input.style.border = '');
+            block.querySelector('.correct-answer-selector').style.border = '';
+        });
+
+        for (const block of questionBlocks) {
+            const questionText = block.querySelector('.question-text').value.trim();
+            const timer = parseInt(block.querySelector('.question-timer').value) || 30;
+            const image = block.querySelector('.question-image').value.trim();
+            const options = Array.from(block.querySelectorAll('.option')).map(input => input.value.trim());
+            const correctAnswer = block.querySelector('.correct-answer').value;
+
+            // Validasi
+            let questionValid = true;
+            
+            if (!questionText) {
+                block.querySelector('.question-text').style.border = '1px solid red';
+                questionValid = false;
+                isValid = false;
+            }
+            
+            const hasEmptyOption = options.some(opt => !opt);
+            if (hasEmptyOption) {
+                block.querySelectorAll('.option').forEach(input => {
+                    if (!input.value.trim()) input.style.border = '1px solid red';
+                });
+                questionValid = false;
+                isValid = false;
+            }
+            
+            if (correctAnswer === '') {
+                block.querySelector('.correct-answer-selector').style.border = '1px solid red';
+                questionValid = false;
+                isValid = false;
+            }
+
+            if (questionValid) {
+                questions.push({
+                    text: questionText,
+                    timer: timer,
+                    image: image,
+                    options: options,
+                    answer: parseInt(correctAnswer)
+                });
+            }
+        }
+
+        if (!isValid) {
+            showNotification('Harap isi semua field yang diperlukan! Periksa field yang berwarna merah.', 'error');
+            return;
+        }
+
+        if (questions.length === 0) {
+            showNotification('Quiz harus memiliki minimal 1 pertanyaan!', 'error');
+            return;
+        }
+
+        // Update quiz
+        currentEditingQuiz.title = title;
+        currentEditingQuiz.questions = questions;
+        currentEditingQuiz.updatedAt = new Date().toISOString();
+
+        const success = await saveData();
+
+        if (success) {
+            showNotification(`Quiz "${title}" berhasil diperbarui!`, 'success');
+            
+            // Tutup modal
+            document.getElementById('edit-quiz-popup').classList.remove('active');
+            
+            // Refresh daftar quiz
+            renderQuizList();
+        } else {
+            showNotification('Quiz berhasil diperbarui secara lokal!', 'success');
+            
+            // Tutup modal
+            document.getElementById('edit-quiz-popup').classList.remove('active');
+            
+            // Refresh daftar quiz
+            renderQuizList();
+        }
+    }
+
     // Hapus quiz (TANPA POP-UP PUTIH)
     async function deleteQuiz(quizCode) {
         // Gunakan confirm bawaan browser (BUKAN POPUP PUTIH)
@@ -1079,6 +1120,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('admin-login-popup').classList.remove('active');
         });
         
+        document.querySelector('#edit-quiz-popup .close-btn').addEventListener('click', () => {
+            document.getElementById('edit-quiz-popup').classList.remove('active');
+        });
+        
         document.getElementById('admin-logout-btn').addEventListener('click', () => {
             showPage('landing-page');
         });
@@ -1140,9 +1185,6 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.quizFilter.addEventListener('change', renderLeaderboard);
         elements.timeFilter.addEventListener('change', renderLeaderboard);
         
-        // Badge challenge
-        document.getElementById('submit-badge-challenge').addEventListener('click', handleBadgeChallengeSubmit);
-        
         // Forms
         elements.playerForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -1182,6 +1224,10 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.addQuestionBtn.addEventListener('click', () => addQuestionField());
         elements.createQuizForm.addEventListener('submit', handleCreateQuiz);
 
+        // Edit quiz
+        elements.editAddQuestionBtn.addEventListener('click', () => addQuestionField(elements.editQuestionsContainer));
+        elements.editQuizForm.addEventListener('submit', handleUpdateQuiz);
+
         // Event delegation untuk quiz list (hanya sekali dipasang)
         elements.quizListContainer.addEventListener('click', function(e) {
             const quizCode = e.target.dataset.code;
@@ -1189,7 +1235,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target.classList.contains('delete-quiz-btn')) {
                 deleteQuiz(quizCode);
             } else if (e.target.classList.contains('edit-quiz-btn')) {
-                showNotification('Fitur edit sedang dalam pengembangan', 'info');
+                editQuiz(quizCode);
             }
         });
     }

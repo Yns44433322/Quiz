@@ -58,16 +58,6 @@
             </div>
         </div>
 
-        <!-- Halaman Tantangan Lencana -->
-        <div id="badge-challenge-page" class="page">
-            <div class="content-box">
-                <h2 class="subtitle">Tantangan Lencana!</h2>
-                <p>Pilih jawaban yang <span style="color: var(--accent-red)">salah</span> untuk diperbaiki:</p>
-                <div id="badge-questions-container" class="questions-container"></div>
-                <button id="submit-badge-challenge" class="btn btn-primary">Perbaiki Jawaban</button>
-            </div>
-        </div>
-
         <!-- Halaman Score -->
         <div id="score-page" class="page">
             <div class="content-box">
@@ -241,6 +231,35 @@
                 <input type="text" id="admin-username" class="input-field" placeholder="Username" required>
                 <input type="password" id="admin-password" class="input-field" placeholder="Password" required>
                 <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Edit Quiz -->
+    <div id="edit-quiz-popup" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close-btn">&times;</span>
+            <h2 class="subtitle">Edit Quiz</h2>
+            <form id="edit-quiz-form">
+                <div class="form-group">
+                    <label for="edit-quiz-title" class="form-label">Judul Quiz</label>
+                    <input type="text" id="edit-quiz-title" class="input-field" placeholder="Masukkan judul quiz" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-quiz-code" class="form-label">Kode Quiz</label>
+                    <input type="text" id="edit-quiz-code" class="input-field" placeholder="Kode Quiz" required readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Pertanyaan</label>
+                    <div id="edit-questions-container" class="questions-container"></div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" id="edit-add-question-btn" class="btn btn-secondary">+ Tambah Pertanyaan</button>
+                    <button type="submit" class="btn btn-primary">Update Quiz</button>
+                </div>
             </form>
         </div>
     </div>
