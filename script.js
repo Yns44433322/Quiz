@@ -122,7 +122,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Fungsi untuk mendapatkan konfigurasi API (disembunyikan)
     function getApiConfig() {
-        // Data yang diacak dan dipisah
         const part1 = '68f4fb0d';
         const part2 = '43b1c97be971204d';
         const part3 = '$2a$10$pGIBtyGF2MLAh5h1WMv9M';
@@ -209,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveToLocalStorage(appData);
                 
                 console.log('Data berhasil diambil dari server:', appData);
-                // NOTIFIKASI SUKSES DIHAPUS - tidak ada notifikasi sukses
+                // NOTIFIKASI SINKRONISASI SUKSES DIHILANGKAN
             } else {
                 console.warn('Tidak bisa mengakses server, menggunakan data lokal. Status:', response.status);
                 showNotification('Tidak dapat terhubung ke server', 'error');
@@ -252,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok) {
                 serverSuccess = true;
                 console.log('Data berhasil disimpan ke server:', appData);
-                // NOTIFIKASI SUKSES DIHAPUS - tidak ada notifikasi
+                // NOTIFIKASI SUKSES DIHAPUS
             } else {
                 const errorText = await response.text();
                 console.error('Server response error:', response.status, errorText);
@@ -324,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (index >= 0 && index < appData.subAdmins.length) {
             const admin = appData.subAdmins[index];
             
-            // Gunakan confirm bawaan browser (bukan popup putih)
+            // Gunakan confirm bawaan browser (BUKAN POPUP PUTIH)
             if (confirm(`Apakah Anda yakin ingin menghapus admin "${admin.username}"?`)) {
                 appData.subAdmins.splice(index, 1);
                 await saveData();
@@ -573,9 +572,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Siapkan tantangan lencana
     function prepareBadgeChallenge() {
         badgeChallengeQuestions = [];
-        
-        // Ambil 3 pertanyaan acak dari quiz yang salah dijawab oleh user
-        const wrongQuestions = [];
         
         // Untuk demo, kita buat beberapa pertanyaan challenge
         const challengeQuestions = [
@@ -944,7 +940,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Hapus quiz (TANPA POP-UP PUTIH)
     async function deleteQuiz(quizCode) {
-        // Gunakan confirm bawaan browser (bukan popup putih)
+        // Gunakan confirm bawaan browser (BUKAN POPUP PUTIH)
         const quiz = appData.quizzes.find(q => q.code === quizCode);
         if (!quiz) return;
         
